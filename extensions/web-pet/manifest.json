@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Web Pet",
+  "version": "1.0.0",
+  "description": "ตัวละครน่ารักๆ เดินไปมาบนหน้าเว็บ กดเล่น ลากย้าย และชวนคุยได้",
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_title": "Web Pet",
+    "default_popup": "popup.html"
+  }
+}
