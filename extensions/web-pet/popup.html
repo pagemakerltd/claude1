@@ -8,9 +8,12 @@
   <img class="preview" src="images/cat/icon.png" alt="" />
   <h1>Web Pet</h1>
 
-  <label class="switch"><input type="checkbox" id="enabled" /><span>แสดงน้องแมวบนหน้าเว็บ</span></label>
-  <label class="switch"><input type="checkbox" id="follow" /><span>วิ่งตามเมาส์</span></label>
-  <label class="switch"><input type="checkbox" id="climb" /><span>ปีนขึ้นของบนหน้าเว็บ</span></label>
+  <div class="grid">
+    <button id="chat" type="button">💬 คุยกับน้อง</button>
+    <button id="notes" type="button">📝 โน้ต</button>
+    <button id="sites" type="button">🌐 เว็บที่จำไว้</button>
+    <button id="gohome" type="button">🏠 ไปนอน</button>
+  </div>
 
   <p class="label">ของเล่น</p>
   <div class="toys">
@@ -19,7 +22,14 @@
   </div>
   <p id="msg"></p>
 
-  <p class="hint">กดที่น้องเพื่อเล่น ลากเพื่อย้าย ลากของเล่นโยนได้<br />หน้าที่เปิดค้างไว้ก่อนติดตั้งต้อง refresh</p>
+  <p class="label">ตัวเลือก</p>
+  <label class="switch"><input type="checkbox" id="enabled" /><span>แสดงน้องแมวบนหน้าเว็บ</span></label>
+  <label class="switch"><input type="checkbox" id="home" /><span>มีบ้านให้น้องนอน</span></label>
+  <label class="switch"><input type="checkbox" id="follow" /><span>วิ่งตามเมาส์</span></label>
+  <label class="switch"><input type="checkbox" id="climb" /><span>ปีนขึ้นของบนหน้าเว็บ</span></label>
+  <a href="#" id="options">⚙️ ตั้งค่า API key (สำหรับคุยกับน้อง)</a>
+
+  <p class="hint">กดที่น้องเพื่อเล่น ลากเพื่อย้าย โยนน้องไปบนของในหน้าเว็บได้<br />หน้าที่เปิดค้างไว้ก่อนติดตั้งต้อง refresh</p>
   <script src="popup.js"></script>
 </body>
 </html>

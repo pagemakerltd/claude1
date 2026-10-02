@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Web Pet",
-  "version": "3.0.0",
-  "description": "น้องแมวพิกเซลเดินไปมาบนหน้าเว็บ กดเล่น ลากย้าย และชวนคุยได้",
+  "version": "4.0.0",
+  "description": "น้องแมวพิกเซลเดินไปมาบนหน้าเว็บ มีบ้านให้นอน จดโน้ต จำเว็บ และคุยกันได้",
   "permissions": [
     "storage"
   ],
@@ -13,6 +13,7 @@
         "https://*/*"
       ],
       "js": [
+        "panel.js",
         "content.js"
       ]
     }
@@ -37,5 +38,15 @@
   ],
   "icons": {
     "128": "images/cat/icon.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "https://api.anthropic.com/*"
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
   }
 }

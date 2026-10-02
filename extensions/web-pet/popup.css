@@ -1,11 +1,13 @@
-body { width: 240px; padding: 12px; font-family: system-ui, sans-serif; font-size: 13px; }
-.preview { display: block; width: 96px; height: 96px; margin: 0 auto; object-fit: contain; }
-h1 { font-size: 16px; margin: 4px 0 10px; text-align: center; }
-.switch { display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: pointer; }
+body { width: 260px; padding: 12px; font-family: system-ui, sans-serif; font-size: 13px; }
+.preview { display: block; width: 80px; height: 80px; margin: 0 auto; object-fit: contain; }
+h1 { font-size: 16px; margin: 2px 0 10px; text-align: center; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+button { padding: 8px 4px; border: 0; border-radius: 8px; background: #f1f3f4; font: inherit; cursor: pointer; }
+button:hover { background: #e8eaed; }
 .label { margin: 12px 0 6px; font-weight: 600; }
 .toys { display: flex; gap: 6px; }
-.toys button { flex: 1; padding: 8px 4px; border: 0; border-radius: 8px; background: #f1f3f4;
-  font-size: 13px; cursor: pointer; }
-.toys button:hover { background: #e8eaed; }
+.toys button { flex: 1; }
+.switch { display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: pointer; }
 #msg { min-height: 16px; margin: 6px 0 0; font-size: 12px; color: #c5221f; }
-.hint { margin: 8px 0 0; font-size: 11px; color: #777; line-height: 1.5; text-align: center; }
+#options { display: block; margin-top: 8px; font-size: 12px; color: #1a73e8; text-decoration: none; }
+.hint { margin: 10px 0 0; font-size: 11px; color: #777; line-height: 1.5; text-align: center; }
