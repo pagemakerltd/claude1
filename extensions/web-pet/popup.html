@@ -7,11 +7,19 @@
 <body>
   <img class="preview" src="images/cat/icon.png" alt="" />
   <h1>Web Pet</h1>
-  <label class="switch">
-    <input type="checkbox" id="enabled" />
-    <span>แสดงน้องแมวบนหน้าเว็บ</span>
-  </label>
-  <p class="hint">กดที่น้องเพื่อเล่น ลากเพื่อย้าย<br />หน้าที่เปิดค้างไว้ก่อนติดตั้งต้อง refresh</p>
+
+  <label class="switch"><input type="checkbox" id="enabled" /><span>แสดงน้องแมวบนหน้าเว็บ</span></label>
+  <label class="switch"><input type="checkbox" id="follow" /><span>วิ่งตามเมาส์</span></label>
+  <label class="switch"><input type="checkbox" id="climb" /><span>ปีนขึ้นของบนหน้าเว็บ</span></label>
+
+  <p class="label">ของเล่น</p>
+  <div class="toys">
+    <button id="yarn" type="button">🧶 ไหมพรม</button>
+    <button id="fish" type="button">🐟 ปลา</button>
+  </div>
+  <p id="msg"></p>
+
+  <p class="hint">กดที่น้องเพื่อเล่น ลากเพื่อย้าย ลากของเล่นโยนได้<br />หน้าที่เปิดค้างไว้ก่อนติดตั้งต้อง refresh</p>
   <script src="popup.js"></script>
 </body>
 </html>
