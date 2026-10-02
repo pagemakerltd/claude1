@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Term Explainer",
+  "version": "1.0.0",
+  "description": "ไฮไลต์ศัพท์เฉพาะในหน้าเว็บ แล้วให้ Claude สรุปว่าคืออะไร",
+  "permissions": ["storage"],
+  "host_permissions": ["https://api.anthropic.com/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "options_ui": { "page": "options.html", "open_in_tab": true },
+  "action": { "default_title": "Term Explainer" }
+}

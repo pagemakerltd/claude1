@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>Term Explainer – ตัวเลือก</title>
+  <style>
+    body { max-width: 480px; margin: 32px auto; padding: 0 16px; font-family: system-ui, sans-serif; }
+    h1 { font-size: 20px; }
+    label { display: block; margin: 16px 0 4px; font-weight: 600; }
+    input, select { width: 100%; box-sizing: border-box; padding: 8px; font: inherit; }
+    button { margin-top: 16px; padding: 8px 16px; border: 0; border-radius: 6px;
+      background: #1a73e8; color: #fff; font: inherit; cursor: pointer; }
+    .hint { font-size: 12px; color: #666; margin-top: 4px; }
+    #status { margin-left: 12px; color: #188038; }
+  </style>
+</head>
+<body>
+  <h1>🔎 Term Explainer</h1>
+  <p>ไฮไลต์ศัพท์ในหน้าเว็บ แล้ว Claude จะอธิบายให้ในกล่องเล็กๆ ใกล้คำนั้น</p>
+
+  <label for="apiKey">Anthropic API key</label>
+  <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off" />
+  <div class="hint">สร้างได้ที่ console.anthropic.com เก็บไว้ในเครื่องนี้เท่านั้น (chrome.storage.local) ไม่ซิงก์ข้ามเครื่อง และถูกส่งไปที่ api.anthropic.com เท่านั้น</div>
+
+  <label for="model">โมเดล</label>
+  <input id="model" placeholder="claude-opus-5-5" />
+  <div class="hint">เว้นว่างเพื่อใช้ค่าเริ่มต้น (claude-opus-5-5) ถ้าอยากให้เร็วและถูกลง ลองใส่ claude-haiku-4-5</div>
+
+  <label for="language">ภาษาของคำอธิบาย</label>
+  <select id="language">
+    <option value="th">ไทย</option>
+    <option value="en">English</option>
+  </select>
+
+  <button id="save">บันทึก</button><span id="status"></span>
+  <script src="options.js"></script>
+</body>
+</html>
