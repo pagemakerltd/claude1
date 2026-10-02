@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Cleaner",
+  "version": "1.0.0",
+  "description": "นับแท็บที่เปิดอยู่ และปิดแท็บที่ซ้ำกันได้ในคลิกเดียว",
+  "permissions": ["tabs"],
+  "action": {
+    "default_title": "Tab Cleaner",
+    "default_popup": "popup.html"
+  }
+}
