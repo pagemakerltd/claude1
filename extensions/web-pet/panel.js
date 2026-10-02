@@ -6,7 +6,7 @@ var WebPetPanel = (() => {
   const MAX_NOTE_CHARS = 2000;
 
   const CSS = `
-    .panel { position: fixed; right: 16px; bottom: 150px; width: 320px; max-width: calc(100vw - 24px);
+    .panel { position: fixed; z-index: 10; right: 16px; bottom: 150px; width: 320px; max-width: calc(100vw - 24px);
       height: 400px; max-height: calc(100vh - 24px); display: none; flex-direction: column;
       background: #fff; color: #202124; border-radius: 14px; overflow: hidden;
       box-shadow: 0 8px 32px rgba(0,0,0,.3); font: 13px/1.5 system-ui, sans-serif;
@@ -20,12 +20,15 @@ var WebPetPanel = (() => {
       font: inherit; cursor: pointer; color: inherit; }
     .tabs button.active { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.18); font-weight: 600; }
     .close:hover, .tabs button:hover { background: rgba(0,0,0,.07); }
+    .who { display: flex; gap: 2px; }
+    .who button { border: 0; border-radius: 8px; padding: 3px 6px; background: transparent; font-size: 16px; cursor: pointer; opacity: .55; }
+    .who button.active { background: #fff; opacity: 1; box-shadow: 0 1px 3px rgba(0,0,0,.18); }
     section { display: none; flex: 1; min-height: 0; flex-direction: column; padding: 10px; gap: 8px; }
     section.active { display: flex; }
     .msgs { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 2px; }
     .msg { max-width: 85%; padding: 6px 10px; border-radius: 12px; white-space: pre-wrap; word-break: break-word; }
     .msg.user { align-self: flex-end; background: #1a73e8; color: #fff; border-bottom-right-radius: 4px; }
-    .msg.pet { align-self: flex-start; background: #f1f3f4; border-bottom-left-radius: 4px; }
+    .msg.bot { align-self: flex-start; background: #f1f3f4; border-bottom-left-radius: 4px; }
     .msg.err { align-self: flex-start; background: #fce8e6; color: #c5221f; font-size: 12px; }
     .msg.wait { color: #888; }
     .send { display: flex; gap: 6px; }
@@ -100,6 +103,7 @@ var WebPetPanel = (() => {
           <button data-tab="notes">📝 โน้ต</button>
           <button data-tab="sites">🌐 เว็บ</button>
         </div>
+        <div class="who"></div>
         <button class="close" title="ปิด">✕</button>
       </div>
       <section data-pane="chat">
@@ -129,6 +133,8 @@ var WebPetPanel = (() => {
     const sendBtn = $(".send button");
 
     let tab = "chat";
+    let sp = { id: "cat", label: "น้องแมว", emoji: "🐱", welcome: "เมี๊ยว~ มีอะไรอยากคุยกับฉันมั้ย? 🐾", storageKey: "petChat" };
+    let avail = [];
     let noteFilter = "here";
     let chat = [];
     let notes = [];
@@ -149,17 +155,42 @@ var WebPetPanel = (() => {
     }
 
     async function load() {
-      const s = await store.get(["petChat", "petNotes", "petSites"]);
-      chat = s.petChat || [];
+      const s = await store.get([sp.storageKey, "petNotes", "petSites"]);
+      chat = s[sp.storageKey] || [];
       notes = s.petNotes || [];
       sites = s.petSites || {};
     }
 
-    async function open(name = "chat") {
+    async function open(name = "chat", info, list) {
+      if (info) sp = info;
+      avail = list && list.length ? list : [sp];
       await load();
+      renderWho();
       panel.classList.add("open");
       setTab(name);
       api.onOpenChange(true);
+    }
+
+    // ถ้ามีทั้งหมาและแมว ให้สลับว่าจะคุยกับตัวไหน (โน้ตและเว็บที่จำไว้ใช้ร่วมกัน)
+    function renderWho() {
+      const box = $(".who");
+      box.textContent = "";
+      input.placeholder = `พิมพ์คุยกับ${sp.label}...`;
+      if (avail.length < 2) return;
+      for (const a of avail) {
+        const b = el("button", a.id === sp.id ? "active" : "", a.emoji);
+        b.title = a.label;
+        b.addEventListener("click", async () => {
+          if (a.id === sp.id || busy) return;
+          const info = api.onSwitchSpecies(a.id);
+          if (!info) return;
+          sp = info;
+          await load();
+          renderWho();
+          if (tab === "chat") renderChat();
+        });
+        box.appendChild(b);
+      }
     }
 
     function close() {
@@ -213,8 +244,8 @@ var WebPetPanel = (() => {
 
     function renderChat() {
       msgsEl.textContent = "";
-      if (chat.length === 0) addMsg("pet", "เมี๊ยว~ มีอะไรอยากคุยกับฉันมั้ย? 🐾");
-      for (const m of chat) addMsg(m.role === "user" ? "user" : "pet", m.text);
+      if (chat.length === 0) addMsg("bot", sp.welcome);
+      for (const m of chat) addMsg(m.role === "user" ? "user" : "bot", m.text);
     }
 
     const ERRORS = {
@@ -238,13 +269,14 @@ var WebPetPanel = (() => {
       chat.push({ role: "user", text });
       chat = chat.slice(-MAX_CHAT_STORED);
       addMsg("user", text);
-      const wait = addMsg("pet wait", "กำลังคิด...");
+      const wait = addMsg("bot wait", "กำลังคิด...");
       api.onThinking(true);
 
       let result;
       try {
         result = await chrome.runtime.sendMessage({
           type: "pet-chat",
+          species: sp.id,
           messages: chat.slice(-MAX_CHAT_SENT),
           page: pageInfo(),
         });
@@ -259,12 +291,12 @@ var WebPetPanel = (() => {
       if (result && result.text) {
         chat.push({ role: "assistant", text: result.text });
         chat = chat.slice(-MAX_CHAT_STORED);
-        addMsg("pet", result.text);
+        addMsg("bot", result.text);
         api.onReply(result.text);
       } else {
         addMsg("err", ERRORS[result && result.error] || ERRORS.api);
       }
-      store.set({ petChat: chat });
+      store.set({ [sp.storageKey]: chat });
       input.focus();
     });
 

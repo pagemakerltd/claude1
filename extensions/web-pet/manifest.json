@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Web Pet",
-  "version": "4.0.0",
-  "description": "น้องแมวพิกเซลเดินไปมาบนหน้าเว็บ มีบ้านให้นอน จดโน้ต จำเว็บ และคุยกันได้",
+  "version": "5.0.0",
+  "description": "น้องแมวและน้องหมาพิกเซลอยู่บนหน้าเว็บ เล่นด้วยกัน มีบ้านให้นอน จดโน้ต จำเว็บ และคุยกันได้",
   "permissions": [
     "storage"
   ],
@@ -13,6 +13,7 @@
         "https://*/*"
       ],
       "js": [
+        "species.js",
         "panel.js",
         "content.js"
       ]
@@ -28,7 +29,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "images/cat/*.png"
+        "images/cat/*.png",
+        "images/dog/*.png"
       ],
       "matches": [
         "http://*/*",
