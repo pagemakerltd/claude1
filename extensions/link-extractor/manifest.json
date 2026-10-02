@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Link Highlighter & Extractor",
+  "version": "1.0.0",
+  "description": "ไฮไลต์ลิงก์ในหน้าเว็บ และดึงลิงก์ทั้งหมดมา copy หรือ export เป็น CSV",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_title": "Link Extractor",
+    "default_popup": "popup.html"
+  }
+}

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <h1>🔗 Link Extractor</h1>
+  <div class="row">
+    <button id="extract" disabled>ดึงลิงก์</button>
+    <button id="highlight" class="secondary" disabled>ไฮไลต์</button>
+  </div>
+  <input id="filter" type="search" placeholder="กรองลิงก์..." disabled />
+  <p id="count">—</p>
+  <ul id="list"></ul>
+  <div class="row">
+    <button id="copy" class="secondary" disabled>Copy</button>
+    <button id="csv" class="secondary" disabled>Export CSV</button>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
