@@ -1,6 +1,6 @@
 # Dark Mode Toggle
 
-Chrome Extension (Manifest V3) สลับเว็บเป็นโหมดมืดในคลิกเดียว จำค่าแยกตามโดเมน
+Chrome Extension (Manifest V3) สลับเว็บเป็นโหมดมืดในคลิกเดียว จำค่าแยกตามโดเมน ใช้ได้ทันทีโดยไม่ต้อง refresh
 
 ## ติดตั้งเพื่อทดสอบ
 1. เปิด `chrome://extensions`
@@ -11,4 +11,4 @@ Chrome Extension (Manifest V3) สลับเว็บเป็นโหมด�
 ## โครงสร้าง
 - `manifest.json` – การตั้งค่า extension
 - `content.js` – ฉีด CSS (invert + hue-rotate) เข้าหน้าเว็บ และฟังการเปลี่ยนค่า
-- `popup.html/css/js` – ปุ่มสลับใน popup เก็บค่าด้วย `chrome.storage.sync`
+- `popup.html/css/js` – ปุ่มสลับใน popup เก็บค่าด้วย `chrome.storage.sync` และใช้ `chrome.scripting.executeScript` ฉีดโหมดมืดเข้าแท็บปัจจุบันทันที
