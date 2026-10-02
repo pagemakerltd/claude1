@@ -1,0 +1,12 @@
+body { width: 320px; padding: 12px; font-family: system-ui, sans-serif; font-size: 14px; }
+h1 { font-size: 16px; margin: 0 0 8px; }
+textarea { width: 100%; box-sizing: border-box; padding: 6px; resize: vertical; font: inherit; }
+#add { width: 100%; margin: 6px 0 10px; padding: 7px; border: 0; border-radius: 6px;
+  background: #1a73e8; color: #fff; font-size: 14px; cursor: pointer; }
+ul { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; }
+li { background: #f4f4f4; border-radius: 6px; padding: 8px; margin-bottom: 6px; }
+.text { white-space: pre-wrap; word-break: break-word; }
+.meta { display: flex; justify-content: space-between; align-items: center;
+  margin-top: 4px; font-size: 11px; color: #777; }
+.meta button { border: 0; background: none; color: #c5221f; cursor: pointer; font-size: 12px; }
+#empty { text-align: center; color: #999; margin: 12px 0 0; }

@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Quick Notes",
+  "version": "1.0.0",
+  "description": "จดโน้ตเร็วๆ ได้จาก popup เก็บไว้ในเบราว์เซอร์",
+  "permissions": ["storage"],
+  "action": {
+    "default_title": "Quick Notes",
+    "default_popup": "popup.html"
+  }
+}
