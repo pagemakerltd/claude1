@@ -1,10 +1,11 @@
 const $ = (id) => document.getElementById(id);
 
-chrome.storage.local.get(["petApiKey", "petModel", "petName", "petDogName", "petShareNotes"], (s) => {
+chrome.storage.local.get(["petApiKey", "petModel", "petName", "petDogName", "petPlutoName", "petShareNotes"], (s) => {
   $("apiKey").value = s.petApiKey || "";
   $("model").value = s.petModel || "";
   $("name").value = s.petName || "";
   $("dogName").value = s.petDogName || "";
+  $("plutoName").value = s.petPlutoName || "";
   $("share").checked = s.petShareNotes === true;
 });
 
@@ -15,6 +16,7 @@ $("save").addEventListener("click", () => {
       petModel: $("model").value.trim(),
       petName: $("name").value.trim(),
       petDogName: $("dogName").value.trim(),
+      petPlutoName: $("plutoName").value.trim(),
       petShareNotes: $("share").checked,
     },
     () => {

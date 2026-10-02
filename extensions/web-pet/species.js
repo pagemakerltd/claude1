@@ -44,6 +44,30 @@ var WebPetSpecies = (() => {
       <ellipse cx="60" cy="99" rx="54" ry="2" fill="rgba(0,0,0,.18)"/>
     </svg>`;
 
+
+  // ----- บ้านพลูโต -----
+  const PLUTO_HOME = `
+    <svg viewBox="0 0 120 100" width="112" height="100" shape-rendering="crispEdges" aria-hidden="true">
+      <rect x="12" y="46" width="96" height="52" fill="#c9a779" stroke="#6b4f2c" stroke-width="3"/>
+      <rect x="12" y="62" width="96" height="4" fill="#b8956a"/>
+      <rect x="12" y="78" width="96" height="4" fill="#b8956a"/>
+      <polygon points="2,50 60,8 118,50" fill="#3b4a6b" stroke="#222c45" stroke-width="3"/>
+      <polygon points="16,48 60,16 104,48" fill="#51638a"/>
+      <g class="win">
+        <rect x="38" y="19" width="44" height="14" rx="3" fill="#fff3c4" stroke="#222c45" stroke-width="2"/>
+        <text x="60" y="30" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#222c45">PLUTO</text>
+      </g>
+      <path d="M40 98 V72 a20 20 0 0 1 40 0 V98 Z" fill="#2f2418" stroke="#1d160e" stroke-width="3"/>
+      <g class="sleeper">
+        <ellipse cx="47" cy="82" rx="6" ry="9" fill="#3a2d22"/><ellipse cx="73" cy="82" rx="6" ry="9" fill="#3a2d22"/>
+        <ellipse cx="60" cy="88" rx="13" ry="10" fill="#d9b27a"/>
+        <ellipse cx="60" cy="80" rx="10" ry="5" fill="#4a3a2c"/>
+        <path d="M53 90 q3 3 6 0 M62 90 q3 3 6 0" stroke="#1d160e" stroke-width="2" fill="none"/>
+        <circle cx="60" cy="94" r="2" fill="#1d160e"/>
+      </g>
+      <ellipse cx="60" cy="99" rx="54" ry="2" fill="rgba(0,0,0,.18)"/>
+    </svg>`;
+
   // ----- แมว -----
   const cat = {
     id: "cat",
@@ -93,6 +117,8 @@ var WebPetSpecies = (() => {
     ],
     landSay: "เมี๊ยว!",
     wakeSay: ["หาวว~ ตื่นแล้ว", "นอนอิ่มแล้ว ✨", "เมี๊ยว~"],
+    social: { invite: "เมี๊ยว! ไล่จับกันมั้ย?", accept: "เมี๊ยว~", caught: "จับได้แล้ว~ ไล่ฉันสิ!", done: "เมี๊ยว~ 💖" },
+    arrive: "เมี๊ยว~ 🐱",
     home: { svg: CAT_HOME, w: 112, h: 100, key: "petHomeX", defaultFrac: 0.88 },
     chat: { storageKey: "petChat", welcome: "เมี๊ยว~ มีอะไรอยากคุยกับฉันมั้ย? 🐾" },
     iconPath: "images/cat/icon.png",
@@ -148,10 +174,68 @@ var WebPetSpecies = (() => {
     ],
     landSay: "โอ๊ย! โฮ่ง!",
     wakeSay: ["หาววว~ ตื่นแล้ว", "นอนอิ่มแล้ว ✨", "โฮ่ง!"],
+    social: { invite: "โฮ่ง! เล่นกันเถอะ!", accept: "โฮ่ง!", caught: "จับได้แล้ว! ตาเธอไล่นะ!", done: "สนุกจัง! โฮ่ง!" },
+    arrive: "โฮ่ง! มาแล้ว! 🐶",
     home: { svg: DOG_HOME, w: 112, h: 100, key: "petDogHomeX", defaultFrac: 0.12 },
     chat: { storageKey: "petChatDog", welcome: "โฮ่ง! มีอะไรอยากเล่าให้ฉันฟังมั้ย? 🐾" },
     iconPath: "images/dog/icon.png",
   };
 
-  return { cat, dog, list: [cat, dog] };
+  // ----- พลูโต (ยอร์คเชียร์เทอร์เรีย) -----
+  const pluto = {
+    id: "pluto",
+    label: "พลูโต",
+    emoji: "🐕",
+    dir: "images/pluto",
+    cell: [156, 135],
+    scale: 0.85,
+    hit: [76, 70],
+    sheets: {
+      idle: 5, blink: 3, happy: 3, sad: 3, angry: 2, walk_right: 7, walk_left: 7, run_right: 6, run_left: 6,
+      jump: 6, fall_land: 5, play: 7, spin: 5, sleep: 4, emote: 6,
+    },
+    anims: {
+      idleA: { sheet: "idle", seq: [0, 1, 2, 3, 4, 3, 2, 1], fps: 3 },
+      idleB: { sheet: "blink", seq: [0, 0, 1, 0, 0, 2, 0, 0], fps: 3 },
+      walkRight: { sheet: "walk_right", seq: range(7), fps: 10, flip: false },
+      walkLeft: { sheet: "walk_left", seq: range(7), fps: 10, flip: false },
+      runRight: { sheet: "run_right", seq: range(6), fps: 12, flip: false },
+      runLeft: { sheet: "run_left", seq: range(6), fps: 12, flip: false },
+      sleep: { sheet: "sleep", seq: [0, 2], fps: 1.2 },
+      jump: { sheet: "jump", seq: range(4), fps: 6 },
+      fly: { sheet: "jump", seq: [1, 3, 1, 3], fps: 8 },
+      tumble: { sheet: "fall_land", seq: [0], fps: 1 },
+      land: { sheet: "fall_land", seq: [1, 2, 3, 4], fps: 4 },
+      play: { sheet: "play", seq: [0, 1, 0, 1, 2, 3, 4, 5, 6], fps: 6 },
+      happy: { sheet: "happy", seq: [0, 1, 2, 1], fps: 6 },
+      think: { sheet: "emote", seq: [2, 2], fps: 1 },
+      invite: { sheet: "happy", seq: [0, 1, 0, 1], fps: 6 },
+    },
+    reaction() {
+      const r = Math.random();
+      if (r < 0.35) return { sheet: "happy", seq: [0, 1, 2, 1], fps: 6, hold: 0.5 };
+      if (r < 0.6) return { sheet: "spin", seq: [0, 1, 2, 3, 4], fps: 5, hold: 0.3 };
+      if (r < 0.7) return { sheet: "play", seq: [2, 3, 4, 5, 4, 3], fps: 8, hold: 0.2 }; // หมุนตัวเป็นวง
+      return { sheet: "emote", seq: [pick([0, 1, 3, 4, 5]), 1], fps: 1.5, hold: 0.3 };
+    },
+    likes: ["ball", "bone", "fish"],
+    toyAnim(kind) {
+      if (kind === "ball") return { say: "จับได้แล้ว! 🎾", spec: { sheet: "play", seq: [0, 1, 0, 1, 2, 3, 4, 5, 6], fps: 6, hold: 0.3 } };
+      if (kind === "bone") return { say: "แทะๆ 🦴", spec: { sheet: "happy", seq: [0, 1, 2, 1, 0, 1, 2, 1], fps: 5, hold: 0.4 } };
+      return { spec: { sheet: "spin", seq: [0, 1, 2, 3, 4], fps: 5, hold: 0.3 } };
+    },
+    phrases: [
+      "โฮ่ง! พลูโตมาแล้ว 🐾", "เล่นลูกบอลกันมั้ย? 🎾", "พลูโตรักเธอนะ 💖", "ลูบหัวพลูโตหน่อย~",
+      "พลูโตหิวแล้ว 🦴", "ดื่มน้ำหรือยัง? 💧", "พาพลูโตไปเดินเล่นหน่อยสิ", "ยืดเส้นยืดสายหน่อยนะ 🙆",
+    ],
+    landSay: "โอ๊ย! ไม่เป็นไร!",
+    wakeSay: ["หาววว~ พลูโตตื่นแล้ว", "นอนอิ่มแล้ว ✨", "โฮ่ง!"],
+    social: { invite: "โฮ่ง โฮ่ง! พลูโตชวนเล่น!", accept: "โฮ่ง!", caught: "จับได้แล้ว! ไล่พลูโตสิ!", done: "พลูโตสนุกจัง! 💖" },
+    arrive: "โฮ่ง! พลูโตมาแล้ว! 🐕",
+    home: { svg: PLUTO_HOME, w: 112, h: 100, key: "petPlutoHomeX", defaultFrac: 0.5 },
+    chat: { storageKey: "petChatPluto", welcome: "โฮ่ง โฮ่ง! พลูโตเองนะ มีอะไรจะเล่าให้ฟังมั้ย? 🐾" },
+    iconPath: "images/pluto/icon.png",
+  };
+
+  return { cat, dog, pluto, list: [cat, dog, pluto] };
 })();

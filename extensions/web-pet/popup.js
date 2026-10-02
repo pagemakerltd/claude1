@@ -1,35 +1,40 @@
-const DEFAULTS = { petEnabled: true, petWho: "cat", petFollow: false, petClimb: true, petHome: true, petPlaydate: true };
+const DEFAULTS = { petEnabled: true, petPets: null, petWho: "cat", petFollow: false, petClimb: true, petHome: true, petPlaydate: true };
 const $ = (id) => document.getElementById(id);
 
-let who = "cat";
+const PET_IDS = ["cat", "dog", "pluto"];
+let pets = ["cat"];
 
-function renderWho() {
-  for (const r of document.querySelectorAll('input[name="who"]')) r.checked = r.value === who;
-  $("catImg").classList.toggle("off", who === "dog");
-  $("dogImg").classList.toggle("off", who === "cat");
-  $("addDog").style.display = who === "cat" ? "" : "none";
-  $("playTogether").style.display = who === "both" ? "" : "none";
-  $("playdate").disabled = who !== "both";
+function renderPets() {
+  for (const box of document.querySelectorAll("input[data-pet]")) box.checked = pets.includes(box.dataset.pet);
+  $("playTogether").style.display = pets.length >= 2 ? "" : "none";
+  $("playdate").disabled = pets.length < 2;
+}
+
+// ค่าเก่า (petWho) ยังอ่านได้: cat | dog | both
+function idsFrom(s) {
+  if (Array.isArray(s.petPets)) return s.petPets.filter((id) => PET_IDS.includes(id));
+  if (s.petWho === "dog") return ["dog"];
+  if (s.petWho === "both") return ["cat", "dog"];
+  return ["cat"];
 }
 
 chrome.storage.sync.get(DEFAULTS, (s) => {
-  who = ["cat", "dog", "both"].includes(s.petWho) ? s.petWho : "cat";
+  pets = idsFrom(s);
   $("enabled").checked = s.petEnabled !== false;
   $("home").checked = s.petHome !== false;
   $("playdate").checked = s.petPlaydate !== false;
   $("follow").checked = s.petFollow === true;
   $("climb").checked = s.petClimb !== false;
-  renderWho();
+  renderPets();
 });
 
-function setWho(v) {
-  who = v;
-  chrome.storage.sync.set({ petWho: v });
-  renderWho();
+for (const box of document.querySelectorAll("input[data-pet]")) {
+  box.addEventListener("change", () => {
+    pets = PET_IDS.filter((id) => document.querySelector(`input[data-pet="${id}"]`).checked);
+    chrome.storage.sync.set({ petPets: pets });
+    renderPets();
+  });
 }
-
-for (const r of document.querySelectorAll('input[name="who"]')) r.addEventListener("change", () => setWho(r.value));
-$("addDog").addEventListener("click", () => setWho("both"));
 
 $("enabled").addEventListener("change", (e) => chrome.storage.sync.set({ petEnabled: e.target.checked }));
 $("home").addEventListener("change", (e) => chrome.storage.sync.set({ petHome: e.target.checked }));

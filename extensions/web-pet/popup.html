@@ -5,20 +5,15 @@
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
-  <div class="heads">
-    <img class="preview" id="catImg" src="images/cat/icon.png" alt="แมว" />
-    <img class="preview" id="dogImg" src="images/dog/icon.png" alt="หมา" />
-  </div>
   <h1>Web Pet</h1>
 
-  <p class="label">สัตว์เลี้ยง</p>
-  <div class="who" role="radiogroup" aria-label="เลือกสัตว์เลี้ยง">
-    <label><input type="radio" name="who" value="cat" /><span>🐱 แมว</span></label>
-    <label><input type="radio" name="who" value="dog" /><span>🐶 หมา</span></label>
-    <label><input type="radio" name="who" value="both" /><span>🐱🐶 ทั้งสอง</span></label>
+  <p class="label">เลือกสัตว์เลี้ยง (เลือกได้กี่ตัวก็ได้)</p>
+  <div class="pets" role="group" aria-label="เลือกสัตว์เลี้ยง">
+    <label class="pet"><input type="checkbox" data-pet="cat" /><span><img src="images/cat/icon.png" alt="" />แมว</span></label>
+    <label class="pet"><input type="checkbox" data-pet="dog" /><span><img src="images/dog/icon.png" alt="" />หมา</span></label>
+    <label class="pet"><input type="checkbox" data-pet="pluto" /><span><img src="images/pluto/icon.png" alt="" />พลูโต</span></label>
   </div>
-  <button id="addDog" type="button" class="wide">➕ เพิ่มน้องหมามาเล่นด้วย</button>
-  <button id="playTogether" type="button" class="wide">🤝 ให้หมากับแมวเล่นด้วยกัน</button>
+  <button id="playTogether" type="button" class="wide">🤝 ให้เล่นด้วยกัน</button>
 
   <p class="label">คุยและจด</p>
   <div class="grid">
@@ -40,7 +35,7 @@
   <p class="label">ตัวเลือก</p>
   <label class="switch"><input type="checkbox" id="enabled" /><span>แสดงสัตว์เลี้ยงบนหน้าเว็บ</span></label>
   <label class="switch"><input type="checkbox" id="home" /><span>มีบ้านให้นอน</span></label>
-  <label class="switch"><input type="checkbox" id="playdate" /><span>ให้หมากับแมวชวนกันเล่นเอง</span></label>
+  <label class="switch"><input type="checkbox" id="playdate" /><span>ให้สัตว์เลี้ยงชวนกันเล่นเอง</span></label>
   <label class="switch"><input type="checkbox" id="follow" /><span>วิ่งตามเมาส์</span></label>
   <label class="switch"><input type="checkbox" id="climb" /><span>ปีนขึ้นของบนหน้าเว็บ</span></label>
   <a href="#" id="options">⚙️ ตั้งค่า API key (สำหรับคุยกับน้อง)</a>

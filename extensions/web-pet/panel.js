@@ -4,6 +4,8 @@ var WebPetPanel = (() => {
   const MAX_CHAT_STORED = 40;
   const MAX_CHAT_SENT = 14;
   const MAX_NOTE_CHARS = 2000;
+  // พิมพ์ชื่อนี้ในโน้ตแล้วมีหัวใจลอยขึ้น
+  const HEART_KEYWORD = /พลูโต|pluto/i;
 
   const CSS = `
     .panel { position: fixed; z-index: 10; right: 16px; bottom: 150px; width: 320px; max-width: calc(100vw - 24px);
@@ -54,6 +56,13 @@ var WebPetPanel = (() => {
     li a { color: #1a73e8; text-decoration: none; }
     li a:hover { text-decoration: underline; }
     li .del { border: 0; background: none; color: #c5221f; cursor: pointer; font-size: 14px; padding: 0 4px; }
+    .pheart { position: absolute; font-size: 18px; pointer-events: none; z-index: 5;
+      animation: pfloat 1.5s ease-out forwards; }
+    @keyframes pfloat {
+      from { transform: translate(0, 0) scale(.6); opacity: 0; }
+      15% { opacity: 1; transform: translate(0, -12px) scale(1); }
+      to { transform: translate(var(--dx, 0px), -120px) scale(1.1); opacity: 0; }
+    }
     .empty { color: #999; text-align: center; padding: 16px 0; }
     .here { padding: 8px 10px; background: #f8f9fa; border-radius: 10px; font-size: 12px; word-break: break-word; }
   `;
@@ -321,7 +330,7 @@ var WebPetPanel = (() => {
       for (const n of shown) {
         const li = el("li");
         const body = el("div", "body");
-        body.appendChild(el("div", "text", n.text));
+        body.appendChild(el("div", "text", (HEART_KEYWORD.test(n.text) ? "💖 " : "") + n.text));
         const meta = el("div", "meta");
         meta.append(fmtDate(n.createdAt));
         if (n.host) {
@@ -352,10 +361,37 @@ var WebPetPanel = (() => {
       });
     }
 
+    // หัวใจลอยขึ้นจากช่องพิมพ์โน้ต
+    function burstHearts(anchor) {
+      const r = anchor.getBoundingClientRect();
+      const pr = panel.getBoundingClientRect();
+      for (let i = 0; i < 8; i++) {
+        const h = el("span", "pheart", i % 3 === 0 ? "💖" : "❤️");
+        h.style.left = `${r.left - pr.left + 12 + Math.random() * Math.max(20, r.width - 40)}px`;
+        h.style.top = `${r.top - pr.top + r.height * 0.5}px`;
+        h.style.setProperty("--dx", `${Math.round((Math.random() - 0.5) * 50)}px`);
+        h.style.animationDelay = `${i * 0.09}s`;
+        panel.appendChild(h);
+        h.addEventListener("animationend", () => h.remove());
+      }
+    }
+
+    const noteBox = $("section[data-pane=notes] textarea");
+    let hadKeyword = false;
+    noteBox.addEventListener("input", () => {
+      const has = HEART_KEYWORD.test(noteBox.value);
+      if (has && !hadKeyword) {
+        burstHearts(noteBox);
+        if (api.onKeyword) api.onKeyword();
+      }
+      hadKeyword = has;
+    });
+
     $(".add").addEventListener("click", async () => {
       const ta = $("section[data-pane=notes] textarea");
       const text = ta.value.trim();
       if (!text) return;
+      const lovely = HEART_KEYWORD.test(text);
       const page = pageInfo();
       const linked = $(".link").checked && /^https?:$/.test(location.protocol);
       notes.push({
@@ -368,8 +404,13 @@ var WebPetPanel = (() => {
       });
       await store.set({ petNotes: notes });
       ta.value = "";
+      hadKeyword = false;
       noteFilter = linked ? "here" : "all";
       renderNotes();
+      if (lovely) {
+        burstHearts($(".note-list"));
+        if (api.onKeyword) api.onKeyword();
+      }
       api.onNoteSaved();
     });
 

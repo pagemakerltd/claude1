@@ -389,11 +389,11 @@
         ["🌐 เว็บ", () => openPanel(this, "sites")],
       ];
       if (W.home) items.push(["🏠 นอน", () => this.goHome()]);
-      const hasCat = W.pets.some((p) => p.sp.id === "cat");
-      const hasDog = W.pets.some((p) => p.sp.id === "dog");
-      if (hasCat && hasDog) items.push(["🤝 เล่นด้วยกัน", () => startPlaydate(true)]);
-      if (!hasDog) items.push(["🐶 เรียกน้องหมา", () => setWho("both")]);
-      if (!hasCat) items.push(["🐱 เรียกน้องแมว", () => setWho("both")]);
+      if (W.pets.length >= 2) items.push(["🤝 เล่นด้วยกัน", () => startPlaydate(true)]);
+      // เรียกสัตว์เลี้ยงตัวที่ยังไม่ได้เลือกมาเพิ่ม
+      for (const sp of SP.list) {
+        if (!petOf(sp.id)) items.push([`➕ ${sp.emoji} ${sp.label}`, () => setPets([...W.pets.map((p) => p.sp.id), sp.id])]);
+      }
       this.bubbleActions.textContent = "";
       for (const [label, fn] of items) {
         const b = document.createElement("button");
@@ -1088,7 +1088,8 @@
   }
 
   // ======================================================================
-  //  เล่นด้วยกัน: หมาเข้าไปชวน → ผลัดกันวิ่งไล่จับ → นั่ง/นอนกอดกัน
+  //  เล่นด้วยกัน (สองตัวใดก็ได้): ตัวหนึ่งเข้าไปชวน → ผลัดกันวิ่งไล่จับ → มาอยู่ด้วยกัน
+  //  คู่ หมา+แมว จะได้ฉากนอนกอดกัน (ภาพที่วาดมาด้วยกัน) คู่อื่นนั่งเคียงข้างกันแทน
   // ======================================================================
   function petOf(id) {
     return W.pets.find((p) => p.sp.id === id) || null;
@@ -1133,47 +1134,60 @@
     }
   }
 
+  const SOCIAL_OK = new Set(["idle", "walk", "run", "sleep", "follow", "jump", "play", "react", "land"]);
+
+  function freePets() {
+    return W.pets.filter((p) => SOCIAL_OK.has(p.mode) && !p.floor && !p.panelOpen && !p.thinking);
+  }
+
   function canPlaydate() {
-    const dog = petOf("dog");
-    const cat = petOf("cat");
-    if (!W.running || W.social || !dog || !cat) return false;
-    const ok = new Set(["idle", "walk", "run", "sleep", "follow", "jump", "play", "react", "land"]);
-    return [dog, cat].every((p) => ok.has(p.mode) && !p.floor && !p.panelOpen && !p.thinking);
+    return W.running && !W.social && freePets().length >= 2;
   }
 
   // manual = ผู้ใช้สั่งเอง (ถ้าทำไม่ได้จะแจ้งเหตุผล)
   function startPlaydate(manual = false) {
-    const dog = petOf("dog");
-    const cat = petOf("cat");
-    if (!dog || !cat) {
-      const p = dog || cat;
-      if (manual && p) p.say("ต้องมีทั้งน้องหมาและน้องแมวถึงจะเล่นด้วยกันได้", 2500);
+    if (W.pets.length < 2) {
+      if (manual && W.pets[0]) W.pets[0].say("ต้องมีสัตว์เลี้ยงอย่างน้อย 2 ตัวถึงจะเล่นด้วยกันได้", 2500);
       return false;
     }
     if (!canPlaydate()) {
-      if (manual) (dog.mode === "inhome" ? dog : cat).say("ตอนนี้ยังไม่ว่างเล่นนะ ลองใหม่อีกสักครู่", 2000);
+      if (manual) {
+        const busy = W.pets.find((p) => !freePets().includes(p)) || W.pets[0];
+        busy.say("ตอนนี้ยังไม่ว่างเล่นนะ ลองใหม่อีกสักครู่", 2000);
+      }
       return false;
     }
-    dog.enterSocial();
-    cat.enterSocial();
-    const side = sign(cat.x - dog.x) || 1; // หมาเข้าไปหาแมวจากด้านที่อยู่
-    cat.dir = -side; // แมวหันหน้ามาหาหมา
-    cat.holdStill("idleA");
-    dog.dir = side;
-    dog.goTo({
+    // สุ่มคู่จากตัวที่ว่าง ให้ตัวที่ไม่ใช่แมวเป็นฝ่ายเข้าไปชวน (ถ้ามี)
+    const free = freePets().sort(() => Math.random() - 0.5);
+    let [a, b] = free;
+    if (a.sp.id === "cat" && b.sp.id !== "cat") [a, b] = [b, a];
+
+    a.enterSocial();
+    b.enterSocial();
+    const side = sign(b.x - a.x) || 1; // ผู้ชวนเข้าไปหาอีกตัวจากด้านที่อยู่
+    b.dir = -side; // อีกตัวหันหน้ามาหา
+    b.holdStill("idleA");
+    a.dir = side;
+    const s = {
+      phase: "approach", t: 0, a, b,
+      duo: new Set([a.sp.id, b.sp.id]).size === 2 && [a, b].some((p) => p.sp.id === "cat") && [a, b].some((p) => p.sp.id === "dog"),
+      runner: b, chaser: a, swaps: 0, pause: 0, tagT: 0, cuddleStep: -1, arrived: 0, mid: 0,
+    };
+    W.social = s;
+    a.goTo({
       kind: "run",
-      getX: () => cat.x - side * APPROACH_GAP,
+      getX: () => b.x - side * APPROACH_GAP,
       onArrive: () => {
-        dog.dir = side;
-        dog.holdStill("invite", { loop: false, hold: 0.8 });
-        dog.say("โฮ่ง! เล่นกันเถอะ!", 1500);
-        cat.holdStill("invite", { loop: false, hold: 0.4 });
-        cat.say("เมี๊ยว~", 1200);
-        W.social.phase = "invite";
-        W.social.t = 0;
+        if (W.social !== s) return;
+        a.dir = side;
+        a.holdStill("invite", { loop: false, hold: 0.8 });
+        a.say(a.sp.social.invite, 1600);
+        b.holdStill("invite", { loop: false, hold: 0.4 });
+        b.say(b.sp.social.accept, 1200);
+        s.phase = "invite";
+        s.t = 0;
       },
     });
-    W.social = { phase: "approach", t: 0, dog, cat, runner: cat, chaser: dog, swaps: 0, pause: 0, tagT: 0, cuddleStep: -1 };
     return true;
   }
 
@@ -1182,7 +1196,7 @@
     if (!s) return;
     W.social = null;
     hideDuo();
-    for (const p of [s.dog, s.cat]) {
+    for (const p of [s.a, s.b]) {
       p.root.classList.remove("hidden");
       if (p.mode === "social") {
         p.goal = null;
@@ -1230,19 +1244,21 @@
     // ผู้ไล่จับได้ → สลับบทบาท: ตัวที่จับได้กลายเป็นผู้ถูกไล่ และวิ่งหนีทันที (ได้ออกตัวก่อน)
     // ส่วนตัวที่ถูกจับยืนดีใจรอก่อนค่อยออกไล่
     [s.runner, s.chaser] = [s.chaser, s.runner];
-    s.runner.say(s.runner.sp.id === "dog" ? "จับได้แล้ว! ตาเธอไล่นะ!" : "จับได้แล้ว~ ไล่ฉันสิ!", 900);
+    s.runner.say(s.runner.sp.social.caught, 900);
     setRunnerGoal(s);
     s.chaser.holdStill("happy", { loop: false });
   }
 
-  function beginCuddle(s) {
+  function beginMeet(s) {
     s.phase = "meet";
     s.t = 0;
-    const { dog, cat } = s;
-    const mid = Math.min(Math.max((dog.x + cat.x) / 2, 120), window.innerWidth - 120);
+    const { a, b } = s;
+    const mid = Math.min(Math.max((a.x + b.x) / 2, 120), window.innerWidth - 120);
     s.mid = mid;
     s.arrived = 0;
-    for (const [p, off] of [[dog, -30], [cat, 30]]) {
+    // หมา+แมว: ผู้ชวนอยู่ซ้าย อีกตัวอยู่ขวา (ตรงกับภาพฉากกอดกัน) ส่วนคู่อื่นอยู่ด้านที่เดินมาจาก
+    const leftFirst = a.x <= b.x;
+    for (const [p, off] of [[a, leftFirst ? -30 : 30], [b, leftFirst ? 30 : -30]]) {
       p.goTo({
         kind: "walk",
         tol: 6,
@@ -1260,25 +1276,32 @@
     s.phase = "cuddle";
     s.t = 0;
     s.cuddleStep = -1;
-    s.dog.root.classList.add("hidden");
-    s.cat.root.classList.add("hidden");
-    showDuo(s.mid, s.dog.groundY());
+    const dog = petOf("dog");
+    s.a.root.classList.add("hidden");
+    s.b.root.classList.add("hidden");
+    showDuo(s.mid, dog.groundY());
+  }
+
+  // คู่ที่ไม่มีภาพกอดกันโดยเฉพาะ: นั่งเคียงข้างกัน ดีใจ มีหัวใจลอย
+  function startTogether(s) {
+    s.phase = "together";
+    s.t = 0;
+    s.cuddleStep = -1;
+    for (const p of [s.a, s.b]) p.holdStill("happy", { loop: true });
   }
 
   function finishSocial(s) {
     if (W.social !== s) return;
     W.social = null;
     hideDuo();
-    for (const p of [s.dog, s.cat]) {
+    for (const p of [s.a, s.b]) {
       p.root.classList.remove("hidden");
       p.mode = "react";
       p.goal = null;
       p.playAnim("happy", { loop: false, hold: 0.4, onEnd: () => p.chooseAction() });
+      p.say(p.sp.social.done, 1600);
+      p.spawnHearts();
     }
-    s.dog.say("สนุกจัง! โฮ่ง!", 1600);
-    s.cat.say("เมี๊ยว~ 💖", 1600);
-    s.dog.spawnHearts();
-    s.cat.spawnHearts();
   }
 
   function updateSocial(dt) {
@@ -1291,28 +1314,39 @@
       if (s.t >= 1.7) beginTag(s);
     } else if (s.phase === "tag") {
       s.tagT += dt;
-      if (s.swaps >= TAG_ROUNDS || s.tagT > TAG_MAX_SECONDS) beginCuddle(s);
+      if (s.swaps >= TAG_ROUNDS || s.tagT > TAG_MAX_SECONDS) beginMeet(s);
     } else if (s.phase === "tagpause") {
       s.pause -= dt;
       if (s.pause <= 0) {
         if (s.swaps >= TAG_ROUNDS) {
-          beginCuddle(s);
+          beginMeet(s);
         } else {
           s.phase = "tag";
           setChaserGoal(s); // ผู้ถูกไล่ออกวิ่งไปแล้ว ตอนนี้ผู้ไล่ค่อยตามไป
         }
       }
     } else if (s.phase === "meet") {
-      if (s.arrived >= 2) startCuddleScene(s);
-      else if (s.t > 7) cancelSocial();
+      if (s.arrived >= 2) {
+        if (s.duo) startCuddleScene(s);
+        else startTogether(s);
+      } else if (s.t > 7) {
+        cancelSocial();
+      }
     } else if (s.phase === "cuddle") {
       const step = Math.min(DUO_SEQUENCE.length - 1, Math.floor((s.t / CUDDLE_SECONDS) * DUO_SEQUENCE.length));
       if (step !== s.cuddleStep) {
         s.cuddleStep = step;
         setDuoFrame(DUO_SEQUENCE[step]);
-        if (step % 2 === 0) s.dog.spawnHearts(W.duo.el);
+        if (step % 2 === 0) s.a.spawnHearts(W.duo.el);
       }
       if (s.t >= CUDDLE_SECONDS) finishSocial(s);
+    } else if (s.phase === "together") {
+      const step = Math.floor(s.t / 1.2);
+      if (step !== s.cuddleStep) {
+        s.cuddleStep = step;
+        (step % 2 === 0 ? s.a : s.b).spawnHearts();
+      }
+      if (s.t >= 3.6) finishSocial(s);
     }
   }
 
@@ -1387,6 +1421,7 @@
         W.panelPet.say("จดให้แล้วนะ 📝", 1500);
         W.panelPet.spawnHearts();
       },
+      onKeyword,
       onSwitchSpecies(id) {
         const pet = petOf(id);
         if (!pet) return;
@@ -1403,8 +1438,28 @@
     });
   }
 
-  function setWho(who) {
-    try { chrome.storage.sync.set({ petWho: who }); } catch { /* ไม่เป็นไร */ }
+  function setPets(ids) {
+    try { chrome.storage.sync.set({ petPets: ids }); } catch { /* ไม่เป็นไร */ }
+  }
+
+  // คำที่ทำให้เกิดหัวใจตอนพิมพ์โน้ต (เช่น ชื่อพลูโต)
+  function onKeyword() {
+    const pluto = petOf("pluto");
+    const target = pluto || W.panelPet || W.pets[0];
+    if (!target) return;
+    target.spawnHearts();
+    setTimeout(() => target.spawnHearts(), 250);
+    setTimeout(() => target.spawnHearts(), 500);
+    if (pluto) {
+      if (!AIRBORNE.has(pluto.mode) && pluto.mode !== "inhome" && pluto.mode !== "social" && pluto.mode !== "think") {
+        clearTimeout(pluto.actionTimer);
+        pluto.mode = "react";
+        pluto.playAnim("happy", { loop: false, hold: 0.4, onEnd: () => pluto.chooseAction() });
+      }
+      pluto.say("พลูโต! 💖", 1800);
+    } else {
+      target.say("พลูโตเหรอ? 💖", 1500);
+    }
   }
 
   // ----- เจ้าของเว็บที่จำไว้: ทักทายตอนกลับมา -----
@@ -1463,13 +1518,13 @@
     const pet = new Pet(sp, x);
     W.pets.push(pet);
     pet.start();
-    pet.say(sp.id === "dog" ? "โฮ่ง! มาแล้ว! 🐶" : "เมี๊ยว~ 🐱", 1500);
+    pet.say(sp.arrive, 1500);
     greetOnce();
     return pet;
   }
 
   function removePet(pet) {
-    if (W.social && (W.social.dog === pet || W.social.cat === pet)) cancelSocial();
+    if (W.social && (W.social.a === pet || W.social.b === pet)) cancelSocial();
     for (const t of W.toys) if (t.claimedBy === pet) t.claimedBy = null;
     if (W.panelPet === pet) {
       W.panelPet = null;
@@ -1481,9 +1536,17 @@
 
   // ----- ตั้งค่า (เก็บแบบ global ใช้ร่วมกันทุกเว็บ) และคำสั่งจาก popup -----
   const DEFAULTS = {
-    petEnabled: true, petWho: "cat", petFollow: false, petClimb: true, petHome: true, petPlaydate: true,
-    petHomeX: SP.cat.home.defaultFrac, petDogHomeX: SP.dog.home.defaultFrac,
+    petEnabled: true, petPets: null, petWho: "cat", petFollow: false, petClimb: true, petHome: true, petPlaydate: true,
+    petHomeX: SP.cat.home.defaultFrac, petDogHomeX: SP.dog.home.defaultFrac, petPlutoHomeX: SP.pluto.home.defaultFrac,
   };
+
+  // เลือกได้กี่ตัวก็ได้ (petPets เป็นรายการ id) ถ้ายังไม่เคยตั้ง ให้อ่านค่าเก่า petWho (cat | dog | both)
+  function selectedIds(s) {
+    if (Array.isArray(s.petPets)) return s.petPets.filter((id) => SP[id]);
+    if (s.petWho === "dog") return ["dog"];
+    if (s.petWho === "both") return ["cat", "dog"];
+    return ["cat"];
+  }
 
   function applySettings(s) {
     W.follow = s.petFollow === true;
@@ -1497,8 +1560,8 @@
     }
     startWorld();
 
-    const who = ["cat", "dog", "both"].includes(s.petWho) ? s.petWho : "cat";
-    const want = who === "both" ? ["cat", "dog"] : [who];
+    const ids = selectedIds(s);
+    const want = SP.list.map((sp) => sp.id).filter((id) => ids.includes(id)); // เรียงตามลำดับมาตรฐาน
     for (const p of [...W.pets]) if (!want.includes(p.sp.id)) removePet(p);
     for (const id of want) if (!petOf(id)) addPet(SP[id]);
 
