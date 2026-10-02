@@ -1538,6 +1538,7 @@
   const DEFAULTS = {
     petEnabled: true, petPets: null, petWho: "cat", petFollow: false, petClimb: true, petHome: true, petPlaydate: true,
     petHomeX: SP.cat.home.defaultFrac, petDogHomeX: SP.dog.home.defaultFrac, petPlutoHomeX: SP.pluto.home.defaultFrac,
+    petHappyHomeX: SP.happy.home.defaultFrac,
   };
 
   // เลือกได้กี่ตัวก็ได้ (petPets เป็นรายการ id) ถ้ายังไม่เคยตั้ง ให้อ่านค่าเก่า petWho (cat | dog | both)

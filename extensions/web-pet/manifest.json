@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Web Pet",
-  "version": "6.0.0",
-  "description": "สัตว์เลี้ยงพิกเซล (แมว หมา พลูโต) อยู่บนหน้าเว็บ เล่นด้วยกัน มีบ้านให้นอน จดโน้ต จำเว็บ และคุยกันได้",
+  "version": "7.0.0",
+  "description": "สัตว์เลี้ยงพิกเซล (แมว หมา พลูโต Happy) อยู่บนหน้าเว็บ เล่นด้วยกัน มีบ้านให้นอน จดโน้ต จำเว็บ และคุยกันได้",
   "permissions": [
     "storage"
   ],
@@ -31,7 +31,8 @@
       "resources": [
         "images/cat/*.png",
         "images/dog/*.png",
-        "images/pluto/*.png"
+        "images/pluto/*.png",
+        "images/happy/*.png"
       ],
       "matches": [
         "http://*/*",

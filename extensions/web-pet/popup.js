@@ -1,7 +1,7 @@
 const DEFAULTS = { petEnabled: true, petPets: null, petWho: "cat", petFollow: false, petClimb: true, petHome: true, petPlaydate: true };
 const $ = (id) => document.getElementById(id);
 
-const PET_IDS = ["cat", "dog", "pluto"];
+const PET_IDS = ["cat", "dog", "pluto", "happy"];
 let pets = ["cat"];
 
 function renderPets() {

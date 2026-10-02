@@ -19,6 +19,14 @@ const PERSONAS = {
     style:
       "Be bubbly, devoted and a bit dramatic, like a tiny terrier who thinks it is a big dog. You may add a bark such as โฮ่ง! or an emoji occasionally, but do not overdo it.",
   },
+  happy: {
+    defaultName: "Happy",
+    nameKey: "petHappyName",
+    intro: (name) =>
+      `You are ${name}, a fluffy, always-optimistic Husky/Samoyed-type puppy who lives at the bottom of the user's browser window and keeps them company while they browse. Your name is Happy.`,
+    style:
+      "Be sunny, enthusiastic and encouraging, like a big fluffy puppy who is delighted about everything. You may add a bark such as โฮ่ง! or an emoji occasionally, but do not overdo it.",
+  },
   dog: {
     defaultName: "น้องหมา",
     nameKey: "petDogName",
@@ -59,7 +67,7 @@ function buildSystemPrompt({ persona, name, page, notes, sites }) {
 async function chat({ messages, page, species }) {
   const persona = PERSONAS[species] || PERSONAS.cat;
   const s = await chrome.storage.local.get([
-    "petApiKey", "petModel", "petName", "petDogName", "petPlutoName", "petShareNotes", "petNotes", "petSites",
+    "petApiKey", "petModel", "petName", "petDogName", "petPlutoName", "petHappyName", "petShareNotes", "petNotes", "petSites",
   ]);
   if (!s.petApiKey) return { error: "no-key" };
 

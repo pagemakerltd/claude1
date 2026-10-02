@@ -68,6 +68,31 @@ var WebPetSpecies = (() => {
       <ellipse cx="60" cy="99" rx="54" ry="2" fill="rgba(0,0,0,.18)"/>
     </svg>`;
 
+
+  // ----- บ้าน Happy -----
+  const HAPPY_HOME = `
+    <svg viewBox="0 0 120 100" width="112" height="100" shape-rendering="crispEdges" aria-hidden="true">
+      <rect x="12" y="46" width="96" height="52" fill="#f1e2bd" stroke="#8a7240" stroke-width="3"/>
+      <rect x="12" y="62" width="96" height="4" fill="#e4d2a3"/>
+      <rect x="12" y="78" width="96" height="4" fill="#e4d2a3"/>
+      <polygon points="2,50 60,8 118,50" fill="#f0b429" stroke="#9a6a05" stroke-width="3"/>
+      <polygon points="16,48 60,16 104,48" fill="#f7c948"/>
+      <g class="win">
+        <circle cx="60" cy="29" r="9" fill="#fff3c4" stroke="#9a6a05" stroke-width="2"/>
+        <circle cx="56.5" cy="27" r="1.5" fill="#6b4a05"/><circle cx="63.5" cy="27" r="1.5" fill="#6b4a05"/>
+        <path d="M54.5 31 q5.5 5 11 0" stroke="#6b4a05" stroke-width="1.8" fill="none"/>
+      </g>
+      <path d="M40 98 V72 a20 20 0 0 1 40 0 V98 Z" fill="#3a2f22" stroke="#241b11" stroke-width="3"/>
+      <g class="sleeper">
+        <polygon points="46,86 49,72 57,82" fill="#b9ab94"/><polygon points="74,86 71,72 63,82" fill="#b9ab94"/>
+        <ellipse cx="60" cy="88" rx="14" ry="10" fill="#f3e7cf"/>
+        <ellipse cx="60" cy="81" rx="10" ry="4" fill="#bdb09a"/>
+        <path d="M53 90 q3 3 6 0 M62 90 q3 3 6 0" stroke="#241b11" stroke-width="2" fill="none"/>
+        <circle cx="60" cy="94" r="2" fill="#241b11"/>
+      </g>
+      <ellipse cx="60" cy="99" rx="54" ry="2" fill="rgba(0,0,0,.18)"/>
+    </svg>`;
+
   // ----- แมว -----
   const cat = {
     id: "cat",
@@ -237,5 +262,60 @@ var WebPetSpecies = (() => {
     iconPath: "images/pluto/icon.png",
   };
 
-  return { cat, dog, pluto, list: [cat, dog, pluto] };
+  // ----- Happy (ฮัสกี้/ซามอยด์ขนฟู) -----
+  const happy = {
+    id: "happy",
+    label: "Happy",
+    emoji: "🐺",
+    dir: "images/happy",
+    cell: [176, 112],
+    scale: 0.85,
+    hit: [78, 70],
+    sheets: {
+      idle: 6, blink: 3, happy: 3, sad: 3, angry: 2, walk_right: 8, walk_left: 8, run_right: 6, run_left: 6,
+      jump: 6, fall_land: 6, play: 6, spin: 4, sleep: 5, emote: 7,
+    },
+    anims: {
+      idleA: { sheet: "idle", seq: [0, 1, 2, 3, 4, 5, 4, 3, 2, 1], fps: 3 },
+      idleB: { sheet: "blink", seq: [0, 0, 1, 0, 0, 2, 0, 0], fps: 3 },
+      walkRight: { sheet: "walk_right", seq: range(8), fps: 10, flip: false },
+      walkLeft: { sheet: "walk_left", seq: range(8), fps: 10, flip: false },
+      runRight: { sheet: "run_right", seq: range(6), fps: 12, flip: false },
+      runLeft: { sheet: "run_left", seq: range(6), fps: 12, flip: false },
+      sleep: { sheet: "sleep", seq: [1, 3], fps: 1.2 },
+      jump: { sheet: "jump", seq: range(4), fps: 6 },
+      fly: { sheet: "jump", seq: [1, 2, 1, 2], fps: 8 },
+      tumble: { sheet: "fall_land", seq: [0], fps: 1 },
+      land: { sheet: "fall_land", seq: [1, 2, 3, 4, 5], fps: 4 },
+      play: { sheet: "play", seq: [0, 1, 2, 3, 4, 5, 4, 3], fps: 6 },
+      happy: { sheet: "happy", seq: [0, 1, 2, 1], fps: 6 },
+      think: { sheet: "emote", seq: [3, 3], fps: 1 },
+      invite: { sheet: "happy", seq: [0, 1, 0, 1], fps: 6 },
+    },
+    reaction() {
+      const r = Math.random();
+      if (r < 0.4) return { sheet: "happy", seq: [0, 1, 2, 1], fps: 6, hold: 0.5 };
+      if (r < 0.65) return { sheet: "spin", seq: [0, 1, 2, 3], fps: 5, hold: 0.3 };
+      return { sheet: "emote", seq: [pick([1, 2, 4, 5, 6]), 0], fps: 1.5, hold: 0.3 };
+    },
+    likes: ["ball", "bone", "fish"],
+    toyAnim(kind) {
+      if (kind === "ball") return { say: "ได้ลูกบอลแล้ว! 🎾", spec: { sheet: "play", seq: [0, 1, 2, 3, 4, 5, 4, 3, 4, 5], fps: 6, hold: 0.3 } };
+      if (kind === "bone") return { say: "แทะๆ 🦴", spec: { sheet: "happy", seq: [0, 1, 2, 1, 0, 1, 2, 1], fps: 5, hold: 0.4 } };
+      return { spec: { sheet: "spin", seq: [0, 1, 2, 3], fps: 5, hold: 0.3 } };
+    },
+    phrases: [
+      "Happy มาแล้ว! 😄", "เล่นกันมั้ย? 🎾", "ลูบหัว Happy หน่อย~", "Happy ดีใจจังเลย!",
+      "วันนี้เป็นไงบ้าง?", "ดื่มน้ำหรือยัง? 💧", "พา Happy ไปเดินเล่นหน่อยสิ", "ยืดเส้นยืดสายหน่อยนะ 🙆",
+    ],
+    landSay: "โอ๊ะ! Happy ไม่เป็นไร!",
+    wakeSay: ["หาววว~ Happy ตื่นแล้ว", "นอนอิ่มแล้ว ✨", "โฮ่ง!"],
+    social: { invite: "โฮ่ง! Happy ชวนเล่น!", accept: "โฮ่ง!", caught: "จับได้แล้ว! ไล่ Happy สิ!", done: "Happy สนุกจัง! 😄" },
+    arrive: "โฮ่ง! Happy มาแล้ว! 😄",
+    home: { svg: HAPPY_HOME, w: 112, h: 100, key: "petHappyHomeX", defaultFrac: 0.3 },
+    chat: { storageKey: "petChatHappy", welcome: "โฮ่ง! Happy เองนะ วันนี้มีเรื่องอะไรจะเล่าให้ฟังมั้ย? 🐾" },
+    iconPath: "images/happy/icon.png",
+  };
+
+  return { cat, dog, pluto, happy, list: [cat, dog, pluto, happy] };
 })();
