@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Web Pet",
-  "version": "2.0.0",
-  "description": "กระต่ายน่ารักเดินไปมาบนหน้าเว็บ กดเล่น ลากย้าย และชวนคุยได้",
+  "version": "3.0.0",
+  "description": "น้องแมวพิกเซลเดินไปมาบนหน้าเว็บ กดเล่น ลากย้าย และชวนคุยได้",
   "permissions": [
     "storage"
   ],
@@ -21,13 +21,13 @@
     "default_title": "Web Pet",
     "default_popup": "popup.html",
     "default_icon": {
-      "128": "images/sit.png"
+      "128": "images/cat/icon.png"
     }
   },
   "web_accessible_resources": [
     {
       "resources": [
-        "images/*.png"
+        "images/cat/*.png"
       ],
       "matches": [
         "http://*/*",
@@ -36,6 +36,6 @@
     }
   ],
   "icons": {
-    "128": "images/sit.png"
+    "128": "images/cat/icon.png"
   }
 }

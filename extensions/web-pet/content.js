@@ -1,134 +1,230 @@
-// ตัวละครเดินไปมาบนขอบล่างของหน้าเว็บ กดแล้วกระโดด ลากแล้วย้ายได้
+// น้องแมวพิกเซลเดินไปมาบนขอบล่างของหน้าเว็บ กดแล้วมีปฏิกิริยา ลากแล้วย้ายได้
 (() => {
   if (window.__webPetLoaded) return;
   window.__webPetLoaded = true;
 
-  const SIZE = 96;
+  // ----- ภาพแอนิเมชัน (แถบภาพ images/cat/<ชื่อ>.png เรียงเฟรมต่อกันในแนวนอน) -----
+  const CELL_W = 234;
+  const CELL_H = 141;
+  const SCALE = 0.8; // ขนาดที่แสดงเทียบกับภาพต้นฉบับ
+  const FRAME_COUNT = {
+    idle: 7, blink: 4, happy: 3, walk_right: 7, walk_left: 7, run_right: 6, run_left: 5,
+    jump: 6, fall_land: 5, play: 5, special: 4, sit_lie: 8, emote: 11,
+  };
+
+  const CELL_PX_W = CELL_W * SCALE;
+  const CELL_PX_H = CELL_H * SCALE;
+  const HIT_W = 80; // พื้นที่ที่กด/ลากได้ (ตรงกับตัวแมว ไม่ใช่ทั้งช่องภาพ)
+  const HIT_H = 74;
   const MARGIN = 2;
-  const SPEED = 60; // px ต่อวินาที
+  const WALK_SPEED = 55; // px ต่อวินาที
+  const RUN_SPEED = 150;
+  const JUMP_SPEED = 80;
   const GRAVITY = 1800;
   const DRAG_THRESHOLD = 5;
+
   const PHRASES = [
-    "สวัสดี! 👋",
-    "วันนี้เป็นไงบ้าง?",
-    "จั๊กจี้นะ~",
+    "เมี๊ยว~",
+    "ลูบหัวหน่อยสิ",
+    "หิวแล้วนะ 🐟",
+    "จั๊กจี้~",
     "พักสายตาหน่อยมั้ย? 👀",
     "ดื่มน้ำหรือยัง? 💧",
-    "ทำได้ดีมากเลย ✨",
     "อยากเล่นด้วยจัง",
     "ลากฉันไปไหนก็ได้นะ",
     "ยืดเส้นยืดสายหน่อยนะ 🙆",
   ];
 
-  // ท่าทางของตัวละคร (ภาพอยู่ในโฟลเดอร์ images/)
-  const POSES = ["cheer", "sit", "run", "pile", "walk", "star"];
-  const WALK_FRAME_SECONDS = 0.22;
-  const urls = {};
-  const getUrl = (name) => (urls[name] ||= chrome.runtime.getURL(`images/${name}.png`));
+  const urlCache = {};
+  const sheetUrl = (name) => (urlCache[name] ||= chrome.runtime.getURL(`images/cat/${name}.png`));
 
-  let enabled = true;
-
-  // Shadow DOM กัน CSS ของเว็บมากระทบ และตัวละครไม่บังการคลิกส่วนอื่นของหน้า
+  // Shadow DOM กัน CSS ของเว็บมากระทบ และน้องไม่บังการคลิกส่วนอื่นของหน้า
   const host = document.createElement("div");
   host.style.cssText =
     "all: initial; position: fixed; left: 0; top: 0; width: 0; height: 0; z-index: 2147483647; pointer-events: none;";
   const shadow = host.attachShadow({ mode: "closed" });
   shadow.innerHTML = `
     <style>
-      .pet { position: fixed; left: 0; top: 0; width: ${SIZE}px; height: ${SIZE}px;
-        pointer-events: auto; cursor: grab; touch-action: none; user-select: none;
-        -webkit-user-select: none; will-change: transform; }
-      .pet.dragging { cursor: grabbing; }
-      .sprite { width: 100%; height: 100%; transform-origin: 50% 100%; }
-      .face { display: block; width: 100%; height: 100%; }
-      .face img { display: block; width: 100%; height: 100%; object-fit: contain;
-        object-position: 50% 100%; pointer-events: none; -webkit-user-drag: none; }
-      .walking .sprite { animation: bob .36s ease-in-out infinite; }
-      .sleeping .sprite { transform: scale(.92) rotate(-8deg); opacity: .85; }
-      .dragging .sprite { transform: rotate(8deg) scale(1.1); }
-      .jump .sprite { animation: jump .5s ease-out; }
-      @keyframes bob {
-        0%, 100% { transform: translateY(0) rotate(-6deg); }
-        50% { transform: translateY(-4px) rotate(6deg); }
-      }
-      @keyframes jump {
-        0% { transform: translateY(0) scale(1.1, .85); }
-        40% { transform: translateY(-34px) scale(.92, 1.1); }
-        100% { transform: translateY(0) scale(1); }
-      }
-      .bubble { position: absolute; bottom: ${SIZE + 4}px; left: 50%; transform: translateX(-50%);
+      .pet { position: fixed; left: 0; top: 0; width: ${CELL_PX_W}px; height: ${CELL_PX_H}px;
+        pointer-events: none; will-change: transform; user-select: none; -webkit-user-select: none; }
+      .face { position: absolute; inset: 0; }
+      .sprite { position: absolute; inset: 0; background-repeat: no-repeat; }
+      .hit { position: absolute; left: 50%; bottom: 0; width: ${HIT_W}px; height: ${HIT_H}px;
+        transform: translateX(-50%); pointer-events: auto; cursor: grab; touch-action: none; }
+      .hit.dragging { cursor: grabbing; }
+      .bubble { position: absolute; bottom: ${CELL_PX_H + 2}px; left: 50%; transform: translateX(-50%);
         padding: 5px 10px; background: #fff; color: #202124; border-radius: 10px;
         font: 12px/1.4 system-ui, sans-serif; white-space: nowrap;
         box-shadow: 0 2px 8px rgba(0,0,0,.25); pointer-events: none; display: none; }
       .bubble.show { display: block; }
-      .heart { position: absolute; left: 50%; top: 0; font-size: 16px; pointer-events: none;
+      .heart { position: absolute; left: 50%; top: 30%; font-size: 16px; pointer-events: none;
         animation: float 1s ease-out forwards; }
       @keyframes float {
         from { transform: translate(var(--dx), 0); opacity: 1; }
         to { transform: translate(var(--dx), -50px); opacity: 0; }
       }
     </style>
-    <div class="pet"><div class="bubble"></div><div class="sprite"><div class="face"><img alt="" draggable="false" /></div></div></div>`;
+    <div class="pet">
+      <div class="bubble"></div>
+      <div class="face"><div class="sprite"></div></div>
+      <div class="hit"></div>
+    </div>`;
 
   const pet = shadow.querySelector(".pet");
   const bubble = shadow.querySelector(".bubble");
-  const sprite = shadow.querySelector(".sprite");
   const face = shadow.querySelector(".face");
-  const img = shadow.querySelector(".face img");
+  const sprite = shadow.querySelector(".sprite");
+  const hit = shadow.querySelector(".hit");
 
-  // สถานะ: walk | idle | sleep | drag | fall
+  // ----- สถานะ -----
+  // mode: idle | walk | run | jump | play | sleep | react | drag | fall | land
+  let enabled = true;
   let mode = "idle";
-  let dir = 1;
-  let x = 40;
-  let y = 0;
+  let dir = 1; // 1 = ขวา, -1 = ซ้าย
+  let x = 120; // กึ่งกลางตัวแมว (แนวนอน)
+  let y = 0; // ขอบบนของช่องภาพ
   let vy = 0;
   let rafId = 0;
   let lastTime = 0;
   let actionTimer = 0;
   let bubbleTimer = 0;
-  let walkClock = 0;
-  let reactPose = null; // ท่าชั่วคราว เช่น หลังกดหรือหลังตกถึงพื้น
-  let reactUntil = 0;
-  let currentPose = "";
+  let bubblePersistent = false;
 
-  const ground = () => window.innerHeight - SIZE - MARGIN;
-  const maxX = () => Math.max(0, window.innerWidth - SIZE);
+  const groundY = () => window.innerHeight - MARGIN - CELL_PX_H;
+  const minX = () => HIT_W / 2;
+  const maxX = () => Math.max(minX(), window.innerWidth - HIT_W / 2);
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-  function react(pose, ms) {
-    reactPose = pose;
-    reactUntil = performance.now() + ms;
-  }
+  // ----- ระบบแอนิเมชัน -----
+  let anim = null;
+  let shownSheet = "";
+  let shownFrame = -1;
 
-  function currentPoseName() {
-    if (mode === "drag" || mode === "fall") return "cheer";
-    if (reactPose && performance.now() < reactUntil) return reactPose;
-    if (mode === "walk") return Math.floor(walkClock / WALK_FRAME_SECONDS) % 2 ? "walk" : "run";
-    if (mode === "sleep") return "star";
-    return "sit";
-  }
-
-  function render() {
-    const pose = currentPoseName();
-    if (pose !== currentPose) {
-      currentPose = pose;
-      img.src = getUrl(pose);
+  function showFrame(name, index) {
+    if (name !== shownSheet) {
+      shownSheet = name;
+      shownFrame = -1;
+      sprite.style.backgroundImage = `url("${sheetUrl(name)}")`;
+      sprite.style.backgroundSize = `${CELL_PX_W * FRAME_COUNT[name]}px ${CELL_PX_H}px`;
     }
-    pet.style.transform = `translate(${x}px, ${y}px)`;
-    face.style.transform = `scaleX(${dir})`;
-    pet.classList.toggle("walking", mode === "walk");
-    pet.classList.toggle("sleeping", mode === "sleep");
-    pet.classList.toggle("dragging", mode === "drag");
+    if (index !== shownFrame) {
+      shownFrame = index;
+      sprite.style.backgroundPosition = `${-index * CELL_PX_W}px 0`;
+    }
   }
 
+  // seq = ลำดับเฟรม, fps = ความเร็ว, opts: loop, hold (ค้างเฟรมสุดท้ายกี่วินาที), flip, onEnd
+  function startAnim(name, seq, fps, opts = {}) {
+    anim = {
+      name, seq, fps,
+      t: 0,
+      loop: opts.loop !== false,
+      hold: opts.hold || 0,
+      flip: opts.flip !== false, // false = แถบภาพมีแยกซ้าย/ขวาอยู่แล้ว ไม่ต้องกลับด้าน
+      onEnd: opts.onEnd || null,
+      finished: false,
+    };
+    showFrame(name, seq[0]);
+  }
+
+  function tickAnim(dt) {
+    if (!anim) return;
+    anim.t += dt;
+    const raw = Math.floor(anim.t * anim.fps);
+    let i;
+    if (anim.loop) {
+      i = raw % anim.seq.length;
+    } else {
+      i = Math.min(raw, anim.seq.length - 1);
+      if (!anim.finished && anim.t >= anim.seq.length / anim.fps + anim.hold) {
+        anim.finished = true;
+        if (anim.onEnd) anim.onEnd();
+      }
+    }
+    if (anim) showFrame(anim.name, anim.seq[i]);
+  }
+
+  const range = (n) => Array.from({ length: n }, (_, i) => i);
+
+  // ----- ท่าทางต่างๆ -----
+  function startIdle() {
+    mode = "idle";
+    if (Math.random() < 0.65) {
+      startAnim("idle", [0, 1, 0, 2, 0, 3, 0, 4, 5, 6, 5, 4], 3);
+    } else {
+      startAnim("blink", [0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 3], 3);
+    }
+  }
+
+  function startMove(kind) {
+    mode = kind; // "walk" | "run"
+    const side = dir === 1 ? "right" : "left";
+    if (kind === "walk") {
+      startAnim(`walk_${side}`, range(6), 9, { flip: false });
+    } else {
+      startAnim(`run_${side}`, range(side === "right" ? 6 : 5), 12, { flip: false });
+    }
+  }
+
+  function startSleep() {
+    mode = "sleep";
+    startAnim("sit_lie", [5, 6], 1.2);
+  }
+
+  function startJump() {
+    mode = "jump";
+    startAnim("jump", range(6), 8, { loop: false, hold: 0.2, onEnd: chooseAction });
+  }
+
+  function startPlay() {
+    mode = "play";
+    const seq = [0, 1, 2, 3, 4, 3, 2, 1, 0, 1, 2, 3, 4];
+    startAnim("play", seq, 6, { loop: false, hold: 0.3, onEnd: chooseAction });
+  }
+
+  function startFall() {
+    mode = "fall";
+    startAnim("fall_land", [0], 1);
+  }
+
+  function startLand() {
+    mode = "land";
+    say("เมี๊ยว!", 900);
+    startAnim("fall_land", [1, 2, 3, 4], 4, { loop: false, hold: 0.2, onEnd: chooseAction });
+  }
+
+  function startDrag() {
+    mode = "drag";
+    startAnim("fall_land", [0], 1);
+  }
+
+  function startReact() {
+    mode = "react";
+    const r = Math.random();
+    if (r < 0.4) {
+      startAnim("happy", [0, 1, 2, 1, 2], 6, { loop: false, hold: 0.5, onEnd: chooseAction });
+    } else if (r < 0.65) {
+      startAnim("special", [2, 2, 2], 3, { loop: false, hold: 0.4, onEnd: chooseAction });
+    } else {
+      startAnim("emote", [pick([2, 3, 4, 8, 10]), 3], 1.5, { loop: false, hold: 0.3, onEnd: chooseAction });
+    }
+    say(pick(PHRASES));
+    spawnHearts();
+  }
+
+  // ----- ข้อความและหัวใจ -----
   function say(text, ms = 1800) {
     bubble.textContent = text;
     bubble.classList.add("show");
+    bubblePersistent = ms === 0;
     clearTimeout(bubbleTimer);
     if (ms) bubbleTimer = setTimeout(() => bubble.classList.remove("show"), ms);
   }
 
   function hideBubble() {
     clearTimeout(bubbleTimer);
+    bubblePersistent = false;
     bubble.classList.remove("show");
   }
 
@@ -144,52 +240,65 @@
     }
   }
 
-  // รอสักครู่ก่อนเลือกท่าทางถัดไป เพื่อไม่ให้ทับข้อความที่กำลังพูดอยู่
-  function chooseActionLater(ms) {
-    clearTimeout(actionTimer);
-    actionTimer = setTimeout(chooseAction, ms);
-  }
-
+  // ----- เลือกท่าทางถัดไปแบบสุ่ม -----
   function chooseAction() {
     clearTimeout(actionTimer);
     if (!enabled) return;
-    if (mode === "walk" || mode === "idle" || mode === "sleep") {
-      const r = Math.random();
-      if (r < 0.55) {
-        mode = "walk";
-        dir = Math.random() < 0.5 ? -1 : 1;
-        hideBubble();
-      } else if (r < 0.8) {
-        mode = "idle";
-        hideBubble();
-      } else {
-        mode = "sleep";
-        say("💤", 0);
-      }
-      render();
+    if (bubblePersistent) hideBubble();
+
+    const r = Math.random();
+    let loopSeconds = rand(2.5, 5.5);
+    if (r < 0.38) {
+      dir = Math.random() < 0.5 ? -1 : 1;
+      startMove("walk");
+    } else if (r < 0.5) {
+      startIdle();
+    } else if (r < 0.62) {
+      dir = Math.random() < 0.5 ? -1 : 1;
+      startMove("run");
+      loopSeconds = rand(1.2, 2.4);
+    } else if (r < 0.74) {
+      startSleep();
+      loopSeconds = rand(5, 9);
+    } else if (r < 0.86) {
+      startPlay(); // จบเองแล้วเรียก chooseAction ต่อ
+      return;
+    } else {
+      dir = Math.random() < 0.5 ? -1 : 1;
+      startJump(); // จบเองแล้วเรียก chooseAction ต่อ
+      return;
     }
-    actionTimer = setTimeout(chooseAction, 2000 + Math.random() * 3500);
+    actionTimer = setTimeout(chooseAction, loopSeconds * 1000);
+  }
+
+  // ----- วงจรหลัก -----
+  function render() {
+    pet.style.transform = `translate(${x - CELL_PX_W / 2}px, ${y}px)`;
+    face.style.transform = anim && anim.flip && dir === -1 ? "scaleX(-1)" : "";
+    hit.classList.toggle("dragging", mode === "drag");
   }
 
   function frame(time) {
     const dt = Math.min(0.05, (time - lastTime) / 1000 || 0);
     lastTime = time;
+    tickAnim(dt);
 
-    if (mode === "walk") {
-      walkClock += dt;
-      x += dir * SPEED * dt;
-      if (x <= 0) { x = 0; dir = 1; }
-      else if (x >= maxX()) { x = maxX(); dir = -1; }
+    if (mode === "walk" || mode === "run") {
+      x += dir * (mode === "run" ? RUN_SPEED : WALK_SPEED) * dt;
+      if (x <= minX() || x >= maxX()) {
+        x = Math.min(Math.max(x, minX()), maxX());
+        dir = -dir;
+        startMove(mode); // สลับไปใช้แถบภาพอีกด้าน
+      }
+    } else if (mode === "jump") {
+      x = Math.min(Math.max(x + dir * JUMP_SPEED * dt, minX()), maxX());
     } else if (mode === "fall") {
       vy += GRAVITY * dt;
       y += vy * dt;
-      if (y >= ground()) {
-        y = ground();
+      if (y >= groundY()) {
+        y = groundY();
         vy = 0;
-        mode = "idle";
-        react("pile", 1200);
-        say("ฟุ่บ!", 900);
-        chooseActionLater(1500);
+        startLand();
       }
     }
     render();
@@ -198,14 +307,14 @@
 
   function start() {
     if (host.isConnected) return;
-    x = Math.min(x, maxX());
-    y = ground();
-    mode = "idle";
+    x = Math.min(Math.max(x, minX()), maxX());
+    y = groundY();
     document.documentElement.appendChild(host);
+    startIdle();
     render();
     lastTime = performance.now();
     rafId = requestAnimationFrame(frame);
-    chooseAction();
+    actionTimer = setTimeout(chooseAction, 1200);
   }
 
   function stop() {
@@ -218,63 +327,58 @@
   // ----- ปฏิสัมพันธ์: กด / ลาก -----
   let pointerStart = null;
 
-  pet.addEventListener("pointerdown", (e) => {
-    pet.setPointerCapture(e.pointerId);
+  hit.addEventListener("pointerdown", (e) => {
+    hit.setPointerCapture(e.pointerId);
     pointerStart = { px: e.clientX, py: e.clientY, offX: e.clientX - x, offY: e.clientY - y, moved: false };
   });
 
-  pet.addEventListener("pointermove", (e) => {
+  hit.addEventListener("pointermove", (e) => {
     if (!pointerStart) return;
     if (!pointerStart.moved) {
       if (Math.hypot(e.clientX - pointerStart.px, e.clientY - pointerStart.py) < DRAG_THRESHOLD) return;
       pointerStart.moved = true;
-      mode = "drag";
+      clearTimeout(actionTimer);
       hideBubble();
+      startDrag();
     }
-    x = Math.min(Math.max(0, e.clientX - pointerStart.offX), maxX());
-    y = Math.min(Math.max(0, e.clientY - pointerStart.offY), ground());
+    x = Math.min(Math.max(minX(), e.clientX - pointerStart.offX), maxX());
+    y = Math.min(Math.max(0, e.clientY - pointerStart.offY), groundY());
   });
 
-  pet.addEventListener("pointerup", () => {
+  hit.addEventListener("pointerup", () => {
     if (!pointerStart) return;
     const wasDrag = pointerStart.moved;
     pointerStart = null;
     if (wasDrag) {
-      mode = "fall";
       vy = 0;
+      startFall();
       return;
     }
-    // คลิกธรรมดา: ปลุก กระโดด พูด และปล่อยหัวใจ
-    if (mode === "sleep") mode = "idle";
-    sprite.classList.remove("jump");
-    void sprite.offsetWidth; // รีสตาร์ท animation
-    sprite.classList.add("jump");
-    react(Math.random() < 0.5 ? "cheer" : "sit", 1000);
-    say(PHRASES[Math.floor(Math.random() * PHRASES.length)]);
-    spawnHearts();
-    render();
-    chooseActionLater(2500);
+    clearTimeout(actionTimer);
+    startReact();
   });
 
-  pet.addEventListener("pointercancel", () => {
-    if (pointerStart?.moved) { mode = "fall"; vy = 0; }
+  hit.addEventListener("pointercancel", () => {
+    if (pointerStart?.moved) {
+      vy = 0;
+      startFall();
+    }
     pointerStart = null;
   });
 
-  sprite.addEventListener("animationend", (e) => {
-    if (e.animationName === "jump") sprite.classList.remove("jump");
-  });
-
   window.addEventListener("resize", () => {
-    x = Math.min(x, maxX());
-    if (mode !== "drag" && y !== ground()) {
-      if (y > ground()) y = ground();
-      else if (mode !== "fall") { mode = "fall"; vy = 0; }
+    x = Math.min(Math.max(x, minX()), maxX());
+    if (mode !== "drag" && mode !== "fall") {
+      if (y > groundY()) y = groundY();
+      else if (y < groundY()) {
+        vy = 0;
+        startFall();
+      }
     }
   });
 
-  // โหลดภาพทุกท่าล่วงหน้า กันภาพกระพริบตอนเปลี่ยนท่า
-  for (const name of POSES) new Image().src = getUrl(name);
+  // โหลดภาพทุกแถบล่วงหน้า กันภาพกระพริบตอนเปลี่ยนท่า
+  for (const name of Object.keys(FRAME_COUNT)) new Image().src = sheetUrl(name);
 
   // ----- ตั้งค่า (เก็บแบบ global ใช้ร่วมกันทุกเว็บ) -----
   function applySettings(s) {
