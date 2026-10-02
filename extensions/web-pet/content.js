@@ -3,8 +3,8 @@
   if (window.__webPetLoaded) return;
   window.__webPetLoaded = true;
 
-  const SIZE = 44;
-  const MARGIN = 6;
+  const SIZE = 96;
+  const MARGIN = 2;
   const SPEED = 60; // px ต่อวินาที
   const GRAVITY = 1800;
   const DRAG_THRESHOLD = 5;
@@ -20,8 +20,13 @@
     "ยืดเส้นยืดสายหน่อยนะ 🙆",
   ];
 
+  // ท่าทางของตัวละคร (ภาพอยู่ในโฟลเดอร์ images/)
+  const POSES = ["cheer", "sit", "run", "pile", "walk", "star"];
+  const WALK_FRAME_SECONDS = 0.22;
+  const urls = {};
+  const getUrl = (name) => (urls[name] ||= chrome.runtime.getURL(`images/${name}.png`));
+
   let enabled = true;
-  let character = "🐱";
 
   // Shadow DOM กัน CSS ของเว็บมากระทบ และตัวละครไม่บังการคลิกส่วนอื่นของหน้า
   const host = document.createElement("div");
@@ -34,10 +39,10 @@
         pointer-events: auto; cursor: grab; touch-action: none; user-select: none;
         -webkit-user-select: none; will-change: transform; }
       .pet.dragging { cursor: grabbing; }
-      .sprite { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
-        font-size: ${SIZE - 6}px; line-height: 1; transform-origin: 50% 100%;
-        filter: drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
-      .face { display: block; }
+      .sprite { width: 100%; height: 100%; transform-origin: 50% 100%; }
+      .face { display: block; width: 100%; height: 100%; }
+      .face img { display: block; width: 100%; height: 100%; object-fit: contain;
+        object-position: 50% 100%; pointer-events: none; -webkit-user-drag: none; }
       .walking .sprite { animation: bob .36s ease-in-out infinite; }
       .sleeping .sprite { transform: scale(.92) rotate(-8deg); opacity: .85; }
       .dragging .sprite { transform: rotate(8deg) scale(1.1); }
@@ -63,12 +68,13 @@
         to { transform: translate(var(--dx), -50px); opacity: 0; }
       }
     </style>
-    <div class="pet"><div class="bubble"></div><div class="sprite"><span class="face"></span></div></div>`;
+    <div class="pet"><div class="bubble"></div><div class="sprite"><div class="face"><img alt="" draggable="false" /></div></div></div>`;
 
   const pet = shadow.querySelector(".pet");
   const bubble = shadow.querySelector(".bubble");
   const sprite = shadow.querySelector(".sprite");
   const face = shadow.querySelector(".face");
+  const img = shadow.querySelector(".face img");
 
   // สถานะ: walk | idle | sleep | drag | fall
   let mode = "idle";
@@ -80,11 +86,33 @@
   let lastTime = 0;
   let actionTimer = 0;
   let bubbleTimer = 0;
+  let walkClock = 0;
+  let reactPose = null; // ท่าชั่วคราว เช่น หลังกดหรือหลังตกถึงพื้น
+  let reactUntil = 0;
+  let currentPose = "";
 
   const ground = () => window.innerHeight - SIZE - MARGIN;
   const maxX = () => Math.max(0, window.innerWidth - SIZE);
 
+  function react(pose, ms) {
+    reactPose = pose;
+    reactUntil = performance.now() + ms;
+  }
+
+  function currentPoseName() {
+    if (mode === "drag" || mode === "fall") return "cheer";
+    if (reactPose && performance.now() < reactUntil) return reactPose;
+    if (mode === "walk") return Math.floor(walkClock / WALK_FRAME_SECONDS) % 2 ? "walk" : "run";
+    if (mode === "sleep") return "star";
+    return "sit";
+  }
+
   function render() {
+    const pose = currentPoseName();
+    if (pose !== currentPose) {
+      currentPose = pose;
+      img.src = getUrl(pose);
+    }
     pet.style.transform = `translate(${x}px, ${y}px)`;
     face.style.transform = `scaleX(${dir})`;
     pet.classList.toggle("walking", mode === "walk");
@@ -148,6 +176,7 @@
     lastTime = time;
 
     if (mode === "walk") {
+      walkClock += dt;
       x += dir * SPEED * dt;
       if (x <= 0) { x = 0; dir = 1; }
       else if (x >= maxX()) { x = maxX(); dir = -1; }
@@ -158,6 +187,7 @@
         y = ground();
         vy = 0;
         mode = "idle";
+        react("pile", 1200);
         say("ฟุ่บ!", 900);
         chooseActionLater(1500);
       }
@@ -219,6 +249,7 @@
     sprite.classList.remove("jump");
     void sprite.offsetWidth; // รีสตาร์ท animation
     sprite.classList.add("jump");
+    react(Math.random() < 0.5 ? "cheer" : "sit", 1000);
     say(PHRASES[Math.floor(Math.random() * PHRASES.length)]);
     spawnHearts();
     render();
@@ -242,20 +273,21 @@
     }
   });
 
+  // โหลดภาพทุกท่าล่วงหน้า กันภาพกระพริบตอนเปลี่ยนท่า
+  for (const name of POSES) new Image().src = getUrl(name);
+
   // ----- ตั้งค่า (เก็บแบบ global ใช้ร่วมกันทุกเว็บ) -----
   function applySettings(s) {
     enabled = s.petEnabled !== false;
-    character = s.petCharacter || "🐱";
-    face.textContent = character;
     if (enabled) start();
     else stop();
   }
 
   try {
-    chrome.storage.sync.get({ petEnabled: true, petCharacter: "🐱" }, applySettings);
+    chrome.storage.sync.get({ petEnabled: true }, applySettings);
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== "sync") return;
-      chrome.storage.sync.get({ petEnabled: true, petCharacter: "🐱" }, applySettings);
+      chrome.storage.sync.get({ petEnabled: true }, applySettings);
     });
   } catch {
     // extension ถูก reload ขณะหน้าเปิดค้าง — ไม่ต้องทำอะไร

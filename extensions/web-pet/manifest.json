@@ -1,17 +1,41 @@
 {
   "manifest_version": 3,
   "name": "Web Pet",
-  "version": "1.0.0",
-  "description": "ตัวละครน่ารักๆ เดินไปมาบนหน้าเว็บ กดเล่น ลากย้าย และชวนคุยได้",
-  "permissions": ["storage"],
+  "version": "2.0.0",
+  "description": "กระต่ายน่ารักเดินไปมาบนหน้าเว็บ กดเล่น ลากย้าย และชวนคุยได้",
+  "permissions": [
+    "storage"
+  ],
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["content.js"]
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content.js"
+      ]
     }
   ],
   "action": {
     "default_title": "Web Pet",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "images/sit.png"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "images/*.png"
+      ],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ]
+    }
+  ],
+  "icons": {
+    "128": "images/sit.png"
   }
 }
