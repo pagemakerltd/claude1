@@ -43,7 +43,8 @@ async function explain({ term, context }) {
       body: JSON.stringify({
         model: useModel,
         max_tokens: 1500,
-        output_config: { effort: "low" },
+        // Haiku 4.5 ไม่รองรับพารามิเตอร์ effort (ส่งไปจะเกิด error 400)
+        ...(useModel.includes("haiku") ? {} : { output_config: { effort: "low" } }),
         system: buildSystemPrompt(lang),
         messages: [
           {
