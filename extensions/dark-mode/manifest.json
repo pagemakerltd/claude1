@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Dark Mode Toggle",
+  "version": "1.0.0",
+  "description": "สลับเว็บไซต์เป็นโหมดมืดได้ในคลิกเดียว (จำค่าแยกตามเว็บ)",
+  "permissions": ["storage", "tabs"],
+  "action": {
+    "default_title": "Dark Mode Toggle",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

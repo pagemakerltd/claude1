@@ -1,0 +1,7 @@
+body { width: 220px; padding: 12px; font-family: system-ui, sans-serif; text-align: center; }
+h1 { font-size: 16px; margin: 0 0 4px; }
+#host { font-size: 12px; color: #666; margin: 0 0 12px; word-break: break-all; }
+button { width: 100%; padding: 8px; font-size: 14px; border: 0; border-radius: 6px;
+  background: #222; color: #fff; cursor: pointer; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+button.on { background: #f5b400; color: #000; }
