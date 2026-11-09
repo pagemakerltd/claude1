@@ -1,0 +1,212 @@
+<title>Ad Delivery Guide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=Prompt:wght@500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one narrow reading column, platform tabs switch a grid of campaign cards; each card answers the same 4 questions */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --fg:#161a22; --muted:#5b6473; --line:#dfe3ea; --soft:#eceff4;
+  --meta:#1559d6; --tiktok:#0a8a86; --shopee:#d9401f; --accent:var(--meta);
+  --warn-bg:#fff5de; --warn-fg:#7a5200;
+  --f-display:'Prompt','IBM Plex Sans Thai',system-ui,sans-serif;
+  --f-body:'IBM Plex Sans Thai','Noto Sans Thai',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1218; --surface:#171b23; --fg:#e8ebf1; --muted:#9aa3b2; --line:#2a303b; --soft:#1f2430;
+  --meta:#6aa0ff; --tiktok:#3cc9c3; --shopee:#ff7a59; --warn-bg:#2b2410; --warn-fg:#f0cf85; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1218; --surface:#171b23; --fg:#e8ebf1; --muted:#9aa3b2; --line:#2a303b; --soft:#1f2430;
+  --meta:#6aa0ff; --tiktok:#3cc9c3; --shopee:#ff7a59; --warn-bg:#2b2410; --warn-fg:#f0cf85; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.7 var(--f-body);margin:0;
+  padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:32px}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;line-height:1.3;margin:0;text-wrap:balance}
+h1{font-size:clamp(1.7rem,4vw,2.4rem)}
+h2{font-size:1.35rem} h3{font-size:1.08rem}
+p{margin:0}
+.lead{color:var(--muted);max-width:62ch;margin-top:8px}
+.eyebrow{font:500 .72rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+/* auction */
+.auction{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.auction>div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+.auction b{font-family:var(--f-display);display:block;margin-bottom:4px}
+.auction span{color:var(--muted);font-size:.94rem}
+.formula{font:500 .9rem var(--f-mono);background:var(--soft);padding:10px 14px;border-radius:6px;overflow-x:auto;white-space:nowrap}
+/* tabs */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{appearance:none;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);
+  font:500 1rem var(--f-display);padding:10px 16px;cursor:pointer;white-space:nowrap;margin-bottom:-1px}
+.tab:hover{color:var(--fg)}
+.tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.tab:focus-visible,.cmp-btn:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.panel{display:flex;flex-direction:column;gap:24px}
+.how{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:6px}
+.how h3{color:var(--accent)}
+.how p{max-width:75ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card header{display:flex;flex-direction:column;gap:2px}
+.tag{font:500 .72rem var(--f-mono);letter-spacing:.04em;color:var(--accent)}
+.goal{color:var(--muted);font-size:.92rem}
+dl{margin:0;display:flex;flex-direction:column;gap:10px}
+dt{font:500 .72rem var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+dd{margin:0;font-size:.95rem}
+.sec-title{display:flex;flex-direction:column;gap:2px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.box{border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:0}
+.box ul{margin:8px 0 0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px;font-size:.95rem}
+.warn{background:var(--warn-bg);color:var(--warn-fg);border-color:transparent}
+/* compare */
+.cmp-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:.93rem}
+th,td{text-align:left;vertical-align:top;padding:12px 14px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+th{font:500 .8rem var(--f-display);background:var(--soft)}
+th.m{color:var(--meta)} th.t{color:var(--tiktok)} th.s{color:var(--shopee)}
+td:first-child{font-weight:500;width:18%}
+.note{font-size:.88rem;color:var(--muted);max-width:75ch}
+@media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.card:hover{border-color:var(--accent)}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Meta Ads · TikTok Ads · Shopee Ads</div>
+    <h1>โฆษณานำส่งอย่างไร ในแต่ละแบบ Campaign</h1>
+    <p class="lead">อธิบายว่าแต่ละ Campaign เลือกคนดูโฆษณาอย่างไร คิดเงินแบบไหน และควรตั้งค่าอะไร เพื่อให้เลือกประเภท Campaign ตรงกับเป้าหมาย</p>
+  </header>
+
+  <section class="wrap" style="gap:12px">
+    <div class="sec-title"><h2>หลักการร่วม: ทุกแพลตฟอร์มใช้ Auction</h2></div>
+    <div class="auction">
+      <div><b>1. ราคาที่เสนอ (Bid)</b><span>จำนวนเงินที่คุณยอมจ่ายต่อผลลัพธ์ หรือต่อคลิก</span></div>
+      <div><b>2. โอกาสเกิดผลลัพธ์</b><span>ระบบเดาว่าคนนี้จะซื้อ คลิก หรือดูวิดีโอจริงหรือไม่ จากพฤติกรรมในอดีต</span></div>
+      <div><b>3. คุณภาพโฆษณา</b><span>ครีเอทีฟน่าสนใจ ไม่ถูกรายงาน หน้าเว็บ/สินค้าตรงกับที่โฆษณา</span></div>
+    </div>
+    <div class="formula">Meta / TikTok: ค่าการแข่งขัน ≈ Bid × โอกาสเกิดผลลัพธ์ + คุณภาพโฆษณา</div>
+    <p class="note">Meta และ TikTok ส่งโฆษณาให้คนที่กำลังเลื่อนดูฟีด (ผู้ใช้ไม่ได้ตั้งใจหา) ส่วน Shopee ส่งโฆษณาให้คนที่กำลังค้นหาหรือเลือกซื้อสินค้า ทำให้แนวคิดการตั้งค่าต่างกันมาก</p>
+  </section>
+
+  <nav class="tabs" role="tablist" aria-label="เลือกแพลตฟอร์ม"></nav>
+  <main id="view" class="panel"></main>
+
+  <p class="note">ข้อมูลสรุปตามโครงสร้างที่แพลตฟอร์มใช้อยู่ ชื่อ Campaign ตัวเลขขั้นต่ำ (งบ, จำนวน Conversion) และฟีเจอร์ใหม่ เปลี่ยนบ่อยและต่างกันตามประเทศ ควรตรวจในหน้า Ads Manager ของบัญชีตัวเองอีกครั้งก่อนตั้งค่าจริง</p>
+</div>
+
+<script>
+const P = {
+meta:{ name:'Meta (Facebook / Instagram)', cls:'m',
+ how:['หลักการนำส่ง','ระบบ Auction ของ Meta คัดคนจาก Audience ที่กำหนด (หรือ Advantage+ เลือกให้) แล้วเลือกแสดงโฆษณาให้คนที่มีโอกาสทำตาม "ผลลัพธ์ที่ตั้งให้ Optimize" สูงสุด ภายใต้งบที่มี สิ่งที่คุณเลือกใน Optimization Event สำคัญกว่าชื่อ Objective เพราะระบบหาคนที่ทำ Event นั้นเท่านั้น'],
+ cards:[
+  ['Awareness','รู้จักแบรนด์','เพิ่มการรับรู้',
+   'เลือกคนที่น่าจะจำโฆษณาได้ (Ad recall) หรือกระจายให้เข้าถึงจำนวนคนไม่ซ้ำมากที่สุด (Reach) แทบไม่สนใจว่าจะคลิกหรือซื้อ',
+   'คิดตาม 1,000 Impression (CPM)','เหมาะกับเปิดตัวแบรนด์/สินค้า ใช้ Reach & Frequency เมื่อต้องการจองความถี่แน่นอน'],
+  ['Traffic','คนเข้าเว็บ','พาคนเข้าเว็บ/โปรไฟล์',
+   'หาคนที่มีนิสัยชอบคลิก (Link click หรือ Landing page view) ซึ่งคนกลุ่มนี้อาจคลิกบ่อยแต่ไม่ซื้อ',
+   'ส่วนใหญ่ CPM แต่ดูต้นทุนเป็นต่อคลิก','เลือก Landing page view แทน Link click เพื่อตัดคนที่คลิกแล้วออกก่อนโหลดหน้า'],
+  ['Engagement','ปฏิสัมพันธ์','ข้อความ, ดูวิดีโอ, ไลก์',
+   'หาคนที่ชอบกดไลก์/คอมเมนต์ ดูวิดีโอจนจบ (ThruPlay) หรือทักแชท ขึ้นกับ Optimization ที่เลือก',
+   'CPM หรือ ThruPlay','ใช้ทักแชทเมื่อขายผ่าน Inbox ต้องมีทีมตอบเร็ว ไม่งั้นคุณภาพ Lead ตก'],
+  ['Leads','ผู้สนใจ','เก็บ Lead',
+   'หาคนที่มีโอกาสกรอกฟอร์ม/โทร/ทักแชท Instant Form กรอกง่ายจึงได้ปริมาณมาก แต่คุณภาพต่ำกว่า เลือก Optimize ตามคุณภาพ Lead (Conversion leads) ได้',
+   'CPM','เพิ่มคำถามกรองในฟอร์ม และส่งข้อมูล CRM กลับ เพื่อให้ระบบเรียนรู้คนคุณภาพ'],
+  ['App promotion','โปรโมตแอป','ติดตั้งและใช้งานแอป',
+   'หาคนที่มีโอกาสติดตั้ง หรือทำ In-app event (สมัคร, ซื้อ) ตามที่ส่งสัญญาณกลับมา ผ่าน Advantage+ app campaign ที่ระบบจัดครีเอทีฟและกลุ่มเป้าหมายอัตโนมัติ',
+   'CPM','ต้องเชื่อม SDK/MMP ให้ส่ง Event ถูกต้อง'],
+  ['Sales','ยอดขาย','ซื้อสินค้า',
+   'หาคนที่มีโอกาสซื้อสูงสุดจากสัญญาณ Pixel/Conversions API รวม Catalog ที่แสดงสินค้าเฉพาะบุคคล Advantage+ sales campaign คุมเป้า/ครีเอทีฟ/Placement แบบอัตโนมัติ เหลือ Input ให้ปรับน้อย',
+   'CPM (Optimize ที่ Purchase)','ข้อมูล Event ต้องครบและมีปริมาณพอ ตั้งเพดานงบสำหรับลูกค้าเดิมได้')
+ ],
+ extra:[
+  ['งบและการแบ่งงบ',['ตั้งงบที่ Ad set หรือแบบ Campaign budget (Advantage+) ให้ระบบแบ่งไปยัง Ad set ที่ให้ผลดี','ระบบพยายามใช้งบเต็มทุกวัน อาจใช้ได้สูงสุด ~25% เกินงบรายวัน และเฉลี่ยตลอดสัปดาห์']],
+  ['กลยุทธ์ Bid',['Highest volume: ได้ผลลัพธ์มากสุดในงบ ต้นทุนผันผวน','Cost per result goal: คุมต้นทุนเฉลี่ย','ROAS goal: คุมผลตอบแทนขั้นต่ำ','Bid cap: จำกัดราคาประมูลสูงสุด ถ้าตั้งต่ำไปจะไม่ใช้งบ']],
+  ['Learning phase',['ต้องการประมาณ 50 Optimization event ภายใน 7 วันต่อ Ad set','ช่วงนี้ผลไม่นิ่ง การแก้งบ/ครีเอทีฟ/เป้าหมายใหญ่ ๆ ทำให้เริ่มเรียนรู้ใหม่','ถ้า "Learning limited" แปลว่า Event น้อยเกินไป ควรรวม Ad set หรือเลือก Event ที่เกิดบ่อยขึ้น']]
+ ]},
+tiktok:{ name:'TikTok Ads', cls:'t',
+ how:['หลักการนำส่ง','โฆษณาแทรกใน For You feed ระบบประมูลทุกครั้งที่ผู้ใช้เลื่อนวิดีโอ แล้วเลือกโฆษณาที่ให้ค่าประมูลสูงสุดโดยพิจารณา Bid, โอกาสเกิดผลลัพธ์ และประสบการณ์ผู้ใช้ ครีเอทีฟแบบวิดีโอสั้นเป็นตัวกำหนดว่าจะถูกส่งให้ใครมากกว่าการเจาะ Targeting ครีเอทีฟล้าเร็วจึงควรมีหลายชิ้นหมุนเวียน'],
+ cards:[
+  ['Reach','Awareness','เข้าถึงคนจำนวนมาก',
+   'เน้นเข้าถึงคนไม่ซ้ำ ควบคุม Frequency ได้ มีทั้งแบบประมูลทั่วไป และแบบจองล่วงหน้า (TopView, Reach & Frequency) ที่รับประกันตำแหน่งและปริมาณ',
+   'CPM','ใช้แบบจองเมื่อต้องการขึ้นหน้าแรกวันเปิดตัว แบบประมูลเมื่อต้องการยืดหยุ่น'],
+  ['Traffic','Consideration','พาคนเข้าเว็บ/แอป',
+   'หาคนที่มีโอกาสคลิก หรือเข้าหน้า Landing page สำเร็จ (Landing page view) ตามที่เลือก Optimization',
+   'CPC หรือ oCPM','ครีเอทีฟที่บอกชัดว่าคลิกแล้วได้อะไร ลดคลิกพลาด'],
+  ['Video views','Consideration','ดูวิดีโอ',
+   'ส่งให้คนที่มีแนวโน้มดูวิดีโอจนครบช่วงที่กำหนด (เช่น Focused view 6 วินาที) เหมาะกับสร้างกลุ่ม Retarget จากคนที่ดูแล้ว',
+   'CPV หรือ oCPM','Hook 3 วินาทีแรกสำคัญที่สุด'],
+  ['Lead generation','Consideration','เก็บ Lead',
+   'หาคนที่มีโอกาสกรอกฟอร์มใน TikTok (Instant Form) หรือบนเว็บไซต์ เติมข้อมูลเบื้องต้นให้อัตโนมัติ จึงกรอกเสร็จเร็ว',
+   'oCPM','คุณภาพ Lead แตกต่างมาก ควรคัดกรองด้วยคำถามเพิ่ม'],
+  ['Website conversions','Conversion','ซื้อ/สมัครบนเว็บ',
+   'Optimize ไปยัง Event ที่ส่งกลับจาก TikTok Pixel / Events API เช่น Purchase, Add to cart ผ่านช่วง Learning phase แล้วจึงนิ่ง',
+   'oCPM (คิด 1,000 Impression, Optimize ไปที่ Conversion)','ต้องมี Event ต่อวันพอ ราว 50 ใน 7 วันต่อ Ad group เพื่อออกจาก Learning'],
+  ['Product sales / Shop','Conversion','ขายใน TikTok Shop',
+   'โฆษณาสินค้าจาก Catalog ใน TikTok Shop แสดงเป็น Video, LIVE และ Product shopping ads ส่วน GMV Max ให้ระบบจัดการงบ Bid และเลือกวิดีโอ (รวมของครีเอเตอร์) เพื่อดัน GMV ตามเป้า ROI',
+   'ตามประเภทโฆษณา (เน้น oCPM)','ใช้เมื่อขายใน TikTok Shop ต้องมี Product ที่ผ่านการอนุมัติ'],
+  ['Smart+','อัตโนมัติ','ให้ AI ทำเกือบทั้งหมด',
+   'กรอกเพียงเป้าหมาย งบ และชุดครีเอทีฟ ระบบเลือกกลุ่มเป้าหมาย รวมครีเอทีฟ และปรับ Bid เอง มี Smart+ สำหรับเว็บ แอป และ Catalog',
+   'ตามเป้าหมาย','เปิดทดสอบเทียบกับ Campaign ปกติ ใช้ครีเอทีฟหลากหลายเพื่อให้ AI มีของให้เลือก']
+ ],
+ extra:[
+  ['งบและการแบ่งงบ',['ตั้งงบรายวันหรือตลอดแคมเปญ ที่ Campaign หรือ Ad group','มีงบขั้นต่ำตามสกุลเงินและประเทศ ตรวจในหน้าตั้งค่า']],
+  ['กลยุทธ์ Bid',['Lowest cost: ใช้งบให้ได้ผลลัพธ์มากสุด','Cost cap: คุมต้นทุนเฉลี่ยต่อผลลัพธ์','Bid cap: จำกัดราคาประมูล','Value optimization / Min ROAS: คุมผลตอบแทนในบางเป้าหมาย']],
+  ['Learning phase',['ต้องการ Conversion ประมาณ 50 ครั้งใน 7 วันต่อ Ad group','แก้ไขใหญ่ในช่วงนี้ทำให้ต้องเรียนรู้ใหม่','ครีเอทีฟล้าเร็ว ควรเตรียมชิ้นใหม่ทุกสัปดาห์หรือสองสัปดาห์']]
+ ]},
+shopee:{ name:'Shopee Ads', cls:'s',
+ how:['หลักการนำส่ง','Shopee Ads ทำงานต่างจากสองแพลตฟอร์มแรก เพราะผู้ซื้ออยู่ในโหมดซื้อของอยู่แล้ว โฆษณาแสดงเมื่อมีคนค้นหาคำที่ตรงกัน หรือกำลังดูสินค้าที่เกี่ยวข้อง ลำดับแสดงมาจาก Bid ต่อคลิก × คะแนนคุณภาพของสินค้า (ความเกี่ยวข้องกับคำค้น, CTR, อัตราซื้อ, เรตติ้ง, ราคาและสต็อก) และจ่ายเฉพาะเมื่อมีคนคลิก'],
+ cards:[
+  ['Product Search Ads','โฆษณาค้นหาสินค้า','ขึ้นในผลค้นหา',
+   'เลือกคีย์เวิร์ดที่ต้องการ (หรือให้ระบบเลือก) เมื่อมีคนค้นคำนั้น สินค้าคุณเข้าประมูลและขึ้นในผลลัพธ์ มี Match แบบกว้างและแบบตรงตัว ตั้ง Bid แยกรายคีย์เวิร์ดได้',
+   'ต่อคลิก (CPC)','เริ่มจากคำค้นเฉพาะ (ตรงสินค้า) ที่มี Conversion ดี แล้วค่อยขยายไปคำกว้าง'],
+  ['Shop Search Ads','โฆษณาค้นหาร้านค้า','ขึ้นเมื่อค้นชื่อร้าน/แบรนด์',
+   'แสดงการ์ดร้านและสินค้าเด่นบนสุดเมื่อคนค้นชื่อแบรนด์หรือคีย์เวิร์ดของร้าน เหมาะกับป้องกันไม่ให้คู่แข่งแย่งคำแบรนด์',
+   'ต่อคลิก (CPC)','ใช้กับร้านที่มีแบรนด์ชัดและมีสินค้าหลายตัว'],
+  ['Discovery Ads','โฆษณาแนะนำสินค้า','ขึ้นใน "สินค้าที่คุณอาจชอบ"',
+   'แสดงในหน้าสินค้าอื่นที่เกี่ยวข้อง และหน้าแนะนำสินค้า (Daily Discovery) ใช้ Targeting ตามความเกี่ยวข้องกับสินค้าหรือกลุ่มผู้ซื้อ ไม่ต้องมีคนค้นหา จึงช่วยเปิดตลาดสินค้าใหม่',
+   'ต่อคลิก (CPC)','CTR ต่ำกว่า Search ตามปกติ ดูผลที่ยอดขายรวมมากกว่า'],
+  ['GMV Max','อัตโนมัติ','ดันยอดขายรวม',
+   'ระบบจัดการตำแหน่ง คีย์เวิร์ด และ Bid ให้เอง โดยตั้งเป้า ROAS และงบ เหมาะกับร้านที่ไม่มีเวลาปรับรายคีย์เวิร์ด (ชื่อและเงื่อนไขอาจต่างกันตามประเทศ)',
+   'ตามที่ Shopee กำหนด ปกติเป็น CPC','ตั้งเป้า ROAS ให้เป็นจริง ถ้าสูงเกินไปจะใช้งบน้อยและแทบไม่แสดง']
+ ],
+ extra:[
+  ['งบและตารางเวลา',['ตั้งงบรายวันหรืองบรวม พร้อมกำหนดช่วงเวลาที่ให้โฆษณาทำงาน','หักจากเครดิตโฆษณา เมื่อหมดโฆษณาหยุดแสดง']],
+  ['กลยุทธ์ Bid',['อัตโนมัติ: ระบบปรับ Bid ให้','กำหนดเอง: ตั้ง Bid รายคีย์เวิร์ดหรือรายตำแหน่ง','Bid สูงช่วยแย่งตำแหน่ง แต่ถ้าคุณภาพสินค้าต่ำจะยังแพ้ในการจัดอันดับ']],
+  ['สิ่งที่ทำให้ได้ตำแหน่งดี',['ชื่อและรูปสินค้าตรงกับคำค้น','ราคาแข่งขันได้ มีโปรโมชันและสต็อกพอ','เรตติ้งดีและอัตราซื้อสูง','การจัดส่งเร็วและมีป้ายร้านที่น่าเชื่อถือ']]
+ ]}
+};
+const CMP = [
+ ['ต้องการให้คนรู้จัก','Awareness (Reach / Ad recall)','Reach, TopView','Shop Search Ads ป้องกันคำแบรนด์'],
+ ['ต้องการ Traffic','Traffic (Landing page view)','Traffic','Product Search Ads'],
+ ['ต้องการเก็บ Lead','Leads','Lead generation','ไม่ใช่เป้าหมายหลัก'],
+ ['ต้องการยอดขาย','Sales / Advantage+ sales','Website conversions, Product sales, GMV Max, Smart+','Search Ads + GMV Max'],
+ ['ใครเห็นโฆษณา','คนที่ระบบเดาว่าสนใจ ระหว่างเลื่อนฟีด','คนที่ระบบเดาว่าสนใจ ระหว่างดูวิดีโอ','คนที่กำลังค้นหาหรือดูสินค้าใกล้เคียง'],
+ ['คิดเงินตาม','Impression (CPM)','Impression (CPM/oCPM) หรือคลิก/วิดีโอ','คลิก (CPC)'],
+ ['ปัจจัยตัดสินผล','Event ที่ Optimize, ครีเอทีฟ, ข้อมูล Pixel','ครีเอทีฟวิดีโอ, Hook, Event','คีย์เวิร์ด, คุณภาพสินค้า, ราคา, รีวิว'],
+ ['ช่วงเรียนรู้','~50 Event / 7 วัน / Ad set','~50 Conversion / 7 วัน / Ad group','ไม่มี Learning phase แต่ต้องรอสะสมข้อมูลคลิก'],
+ ['ข้อควรระวัง','Learning limited, Audience ซ้อนกัน','ครีเอทีฟล้าเร็ว','ตั้ง ROAS/Bid ไม่สมเหตุผลจะไม่แสดง']
+];
+const order=['meta','tiktok','shopee','compare'];
+const labels={meta:'Meta',tiktok:'TikTok',shopee:'Shopee',compare:'เปรียบเทียบ'};
+const colors={meta:'var(--meta)',tiktok:'var(--tiktok)',shopee:'var(--shopee)',compare:'var(--fg)'};
+const nav=document.querySelector('.tabs'), view=document.getElementById('view');
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+order.forEach(k=>{const b=document.createElement('button');b.className='tab';b.role='tab';b.id='tab-'+k;b.textContent=labels[k];
+  b.onclick=()=>{location.hash=k};nav.appendChild(b)});
+function render(k){
+  document.documentElement.style.setProperty('--accent',colors[k]);
+  nav.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.id==='tab-'+k));
+  if(k==='compare'){
+    view.innerHTML=`<div class="sec-title"><h2>เลือกแบบไหน เมื่อต้องการอะไร</h2></div>
+    <div class="cmp-wrap"><table><thead><tr><th></th><th class="m">Meta</th><th class="t">TikTok</th><th class="s">Shopee</th></tr></thead><tbody>${
+      CMP.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[3])}</td></tr>`).join('')}</tbody></table></div>`;
+    return;
+  }
+  const d=P[k];
+  view.innerHTML=`<div class="how"><h3>${esc(d.how[0])} · ${esc(d.name)}</h3><p>${esc(d.how[1])}</p></div>
+  <div class="grid">${d.cards.map(c=>`<article class="card"><header><span class="tag">${esc(c[1])}</span><h3>${esc(c[0])}</h3><span class="goal">${esc(c[2])}</span></header>
+   <dl><div><dt>นำส่งอย่างไร</dt><dd>${esc(c[3])}</dd></div><div><dt>คิดเงิน</dt><dd>${esc(c[4])}</dd></div><div><dt>ข้อแนะนำ</dt><dd>${esc(c[5])}</dd></div></dl></article>`).join('')}</div>
+  <div class="two">${d.extra.map(e=>`<div class="box"><h3>${esc(e[0])}</h3><ul>${e[1].map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}</div>`;
+}
+function route(){const k=location.hash.slice(1);render(order.includes(k)?k:'meta')}
+addEventListener('hashchange',route);route();
+</script>
