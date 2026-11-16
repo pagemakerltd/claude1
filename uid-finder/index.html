@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UID Finder</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--fg:#1c1e21;--mut:#65676b;--bd:#dde0e4;--ac:#1877f2;--ok:#1a7f37;--er:#c62828}
+@media(prefers-color-scheme:dark){:root{--bg:#18191a;--card:#242526;--fg:#e4e6eb;--mut:#a8abb2;--bd:#3a3b3c;--ac:#4599ff;--ok:#4cc26b;--er:#ff6b6b}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif}
+main{max-width:900px;margin:0 auto;padding:20px 16px}h1{font-size:22px;margin:0 0 4px}
+p.s{color:var(--mut);margin:0 0 14px}
+textarea{width:100%;height:170px;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--fg);font:13px ui-monospace,monospace;resize:vertical}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+button{padding:8px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--fg);cursor:pointer;font:inherit}
+button.p{background:var(--ac);border-color:var(--ac);color:#fff}button:disabled{opacity:.5}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--bd);border-radius:8px;overflow:hidden;font-size:13px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--bd);text-align:left;vertical-align:top}th{color:var(--mut);font-weight:600}
+td.u{max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.id{font:600 14px ui-monospace,monospace;color:var(--ok);cursor:pointer}.err{color:var(--er)}.mut{color:var(--mut)}
+#st{color:var(--mut);align-self:center}
+</style></head><body><main>
+<h1>UID Finder</h1>
+<p class="s">วาง URL Facebook / Instagram ได้หลายอัน (บรรทัดละอัน) แล้วกด “หา ID”</p>
+<textarea id="in" placeholder="https://www.facebook.com/nasa&#10;https://www.instagram.com/instagram/&#10;https://www.facebook.com/profile.php?id=100044..."></textarea>
+<div class="bar"><button class="p" id="go">หา ID</button><button id="cid">คัดลอกเฉพาะ ID</button><button id="call">คัดลอกทั้งตาราง</button><button id="csv">ดาวน์โหลด CSV</button><span id="st"></span></div>
+<table id="t" hidden><thead><tr><th>#</th><th>แพลตฟอร์ม</th><th>URL</th><th>ID</th><th>หมายเหตุ</th></tr></thead><tbody></tbody></table>
+<script>
+const $=s=>document.querySelector(s);let rows=[];
+$('#go').onclick=async()=>{const b=$('#go');b.disabled=true;$('#st').textContent='กำลังค้นหา...';
+ try{const r=await fetch('/',{method:'POST',body:JSON.stringify({text:$('#in').value})});rows=await r.json();render();
+  $('#st').textContent=`สำเร็จ ${rows.filter(x=>x.id).length}/${rows.length}`}
+ catch(e){$('#st').textContent='เชื่อมต่อเซิร์ฟเวอร์ไม่ได้'}b.disabled=false};
+function render(){const tb=$('tbody');tb.innerHTML='';$('#t').hidden=!rows.length;
+ rows.forEach((r,i)=>{const tr=tb.insertRow();[i+1,r.platform||'-'].forEach(v=>tr.insertCell().textContent=v);
+  const u=tr.insertCell();u.className='u';u.textContent=r.input;u.title=r.input;
+  const d=tr.insertCell();if(r.id){d.className='id';d.textContent=r.id;d.title='คลิกเพื่อคัดลอก';d.onclick=()=>copy(r.id)}else{d.className='err';d.textContent='ไม่พบ'}
+  const n=tr.insertCell();n.className=r.id?'mut':'err';n.textContent=r.note})}
+async function copy(t){try{await navigator.clipboard.writeText(t);$('#st').textContent='คัดลอกแล้ว'}catch{$('#st').textContent='คัดลอกไม่ได้'}}
+$('#cid').onclick=()=>copy(rows.map(r=>r.id||'').join('\n'));
+$('#call').onclick=()=>copy(rows.map(r=>[r.input,r.id].join('\t')).join('\n'));
+$('#csv').onclick=()=>{const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+ const c='﻿url,platform,id,note\n'+rows.map(r=>[r.input,r.platform,r.id,r.note].map(q).join(',')).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:'text/csv'}));a.download='uids.csv';a.click()};
+</script></main></body></html>
