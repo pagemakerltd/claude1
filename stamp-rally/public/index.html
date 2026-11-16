@@ -1,0 +1,70 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stamp Rally</title><link rel="stylesheet" href="/app.css"></head><body><main id="app"></main>
+<script src="/vendor/qrcode.js"></script>
+<script type="module">
+import { api, $, esc, qrSvg, logout, toast } from '/common.js';
+const app = $('#app');
+let me = null, lastCount = -1, qr = null, qrTimer = null;
+
+async function boot() {
+  try { me = await api('/api/me'); } catch { return loginView(); }
+  if (me.role !== 'user') { location.href = me.role === 'admin' ? '/admin' : '/scan'; return; }
+  cardView(); poll(); setInterval(poll, 2500);
+}
+
+async function loginView() {
+  const cfg = await api('/api/config');
+  app.innerHTML = `<h1>🎟️ Stamp Rally</h1>
+    <p>สะสมแสตมป์ให้ครบ <b>${cfg.required}</b> บูธ แล้วรับของรางวัล!</p>
+    <div class="card">
+      ${cfg.line ? '<a class="btn line block" href="/auth/line">เข้าสู่ระบบด้วย LINE</a>' : ''}
+      ${cfg.dev_login ? `<form id="dev"><p class="muted">${cfg.line ? 'โหมดทดสอบ' : 'ยังไม่ได้ตั้งค่า LINE — โหมดทดสอบ'}: ใส่ชื่อเพื่อเริ่มเล่น</p>
+        <input name="name" placeholder="ชื่อเล่น" required maxlength="40"><button class="btn block">เริ่มเล่น</button></form>` : ''}
+    </div>
+    <p class="muted"><a href="/staff-login">สำหรับบูธ / ทีมงาน</a></p>`;
+  $('#dev')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try { await api('/api/dev-login', { name: new FormData(e.target).get('name') }); boot(); } catch (x) { toast(x.message, false); }
+  });
+}
+
+function cardView() {
+  app.innerHTML = `<div class="row"><div class="row" style="justify-content:flex-start">
+      <img id="av" class="avatar" alt="" hidden><div><b id="nm"></b><div class="muted" id="cnt"></div></div></div>
+      <button class="btn ghost" id="out">ออก</button></div>
+    <div class="card"><div class="grid" id="slots"></div><div class="bar" style="margin-top:12px"><i id="prog"></i></div></div>
+    <div id="win"></div>
+    <div class="card"><div class="muted" style="text-align:center">ให้บูธสแกน QR นี้เพื่อรับแสตมป์</div>
+      <div class="qrbox" id="qr"></div><div class="code" id="code"></div>
+      <div class="bar" style="margin-top:10px"><i id="ttl"></i></div>
+      <p class="muted" style="text-align:center;margin-bottom:0">QR เปลี่ยนอัตโนมัติ · ห้ามส่งภาพให้ผู้อื่น</p></div>`;
+  $('#out').onclick = logout; refreshQr();
+}
+
+async function refreshQr() {
+  clearTimeout(qrTimer);
+  try {
+    qr = await api('/api/me/qr');
+    $('#qr').innerHTML = qrSvg(qr.token); $('#code').textContent = qr.code.replace(/(\d{3})(\d{3})/, '$1 $2');
+  } catch (e) { if (e.status === 401) return location.reload(); }
+  qrTimer = setTimeout(refreshQr, ((qr?.ttl || 60) - 5) * 1000);
+}
+setInterval(() => { if (qr && $('#ttl')) $('#ttl').style.width = Math.max(0, (qr.expires_at - Date.now() / 1000) / qr.ttl * 100) + '%'; }, 500);
+
+async function poll() {
+  if (!$('#slots')) return;
+  let c; try { c = await api('/api/me/card'); } catch { return; }
+  if (me.role !== 'user') return;
+  const av = $('#av'); if (c.user.avatar_url) { av.src = c.user.avatar_url; av.hidden = false; }
+  $('#nm').textContent = c.user.name; $('#cnt').textContent = `${c.count}/${c.required} แสตมป์`;
+  $('#prog').style.width = Math.min(100, c.count / c.required * 100) + '%';
+  $('#slots').innerHTML = Array.from({ length: c.required }, (_, i) => {
+    const s = c.stamps[i]; return s ? `<div class="slot on"><span><b>★</b>${esc(s.vendor)}</span></div>` : `<div class="slot">${i + 1}</div>`;
+  }).join('');
+  $('#win').innerHTML = c.redeemed ? `<div class="card win">🎁 แลกของรางวัลเรียบร้อยแล้ว ขอบคุณที่ร่วมสนุก!</div>`
+    : c.complete ? `<div class="card win">🎉 ครบแล้ว! นำ QR ด้านล่างไปแสดงที่จุดแลกของรางวัล</div>` : '';
+  if (lastCount >= 0 && c.count > lastCount) { toast(`ได้แสตมป์ใหม่! ${c.count}/${c.required}`); navigator.vibrate?.(200); }
+  lastCount = c.count;
+}
+boot();
+</script></body></html>

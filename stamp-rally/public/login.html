@@ -1,0 +1,13 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>เข้าสู่ระบบทีมงาน</title><link rel="stylesheet" href="/app.css"></head><body><main>
+<h1>เข้าสู่ระบบ บูธ / ทีมงาน</h1>
+<form class="card" id="f"><input name="username" placeholder="ชื่อผู้ใช้ เช่น v1234" autocapitalize="none" autocomplete="username" required>
+<input name="pin" type="password" inputmode="numeric" placeholder="PIN 6 หลัก" autocomplete="current-password" required>
+<button class="btn block">เข้าสู่ระบบ</button></form><p class="muted"><a href="/">← กลับหน้าผู้เล่น</a></p></main>
+<script type="module">
+import { api, toast } from '/common.js';
+document.getElementById('f').addEventListener('submit', async (e) => {
+  e.preventDefault(); const d = Object.fromEntries(new FormData(e.target));
+  try { const r = await api('/api/login', d); location.href = r.role === 'admin' ? '/admin' : '/scan'; } catch (x) { toast(x.message, false); }
+});
+</script></body></html>

@@ -1,0 +1,71 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>สแกน Stamp Rally</title><link rel="stylesheet" href="/app.css"></head><body><main id="app">
+<div class="row"><div><h1 id="title">สแกน</h1><div class="muted" id="sub"></div></div><button class="btn ghost" id="out">ออก</button></div>
+<div class="card"><video id="cam" playsinline muted></video><canvas id="cv" hidden></canvas>
+<div id="camMsg" class="muted" style="margin-top:8px">กำลังเปิดกล้อง…</div></div>
+<div id="result"></div>
+<div class="card"><div class="muted">สแกนไม่ติด? ใส่รหัส 6 หลักใต้ QR ของผู้เล่น</div>
+<form id="manual" class="row"><input name="code" inputmode="numeric" maxlength="7" placeholder="123 456" style="margin:0"><button class="btn">ยืนยัน</button></form></div>
+<div class="stat" id="stats" hidden><div><b id="sToday">0</b><span class="muted">วันนี้</span></div><div><b id="sTotal">0</b><span class="muted">ทั้งหมด</span></div></div>
+<div id="recent"></div></main>
+<script src="/vendor/jsqr.js"></script>
+<script type="module">
+import { api, $, esc, toast, logout } from '/common.js';
+let me;
+try { me = await api('/api/me'); } catch { location.href = '/staff-login'; }
+if (me.role === 'admin') location.href = '/admin';
+if (me.role === 'user') location.href = '/';
+const isVendor = me.role === 'vendor';
+const endpoint = isVendor ? '/api/vendor/stamp' : '/api/staff/redeem';
+$('#title').textContent = isVendor ? `สแกนแจกแสตมป์` : 'สแกนแลกของรางวัล';
+$('#sub').textContent = isVendor ? `บูธ: ${me.vendor?.name || ''}` : `ทีมงาน: ${me.name || ''}`;
+$('#out').onclick = logout;
+if (isVendor) $('#stats').hidden = false;
+
+let busy = false, last = '', lastAt = 0;
+function show(ok, html) {
+  $('#result').innerHTML = `<div class="card" style="border-color:var(--${ok ? 'ok' : 'bad'});border-width:2px">${html}</div>`;
+  navigator.vibrate?.(ok ? 120 : [80, 60, 80]);
+}
+async function submit(payload) {
+  if (busy) return; busy = true;
+  try {
+    const r = await api(endpoint, payload);
+    if (isVendor) show(true, `<h2 style="margin:0">✅ ${esc(r.user.name)}</h2><div>ได้แสตมป์แล้ว — ${r.count}/${r.required}${r.complete ? ' 🎉 ครบแล้ว!' : ''}</div>`);
+    else show(true, `<h2 style="margin:0">🎁 ${esc(r.user.name)}</h2><div>ยืนยันแลกของรางวัลเรียบร้อย — มอบของรางวัลได้เลย</div>`);
+    loadStats();
+  } catch (e) {
+    if (e.status === 401) return location.href = '/staff-login';
+    show(false, `<h2 style="margin:0">❌ ไม่สำเร็จ</h2><div>${esc(e.message)}</div>`);
+  }
+  setTimeout(() => { busy = false; }, 1800);
+}
+async function loadStats() {
+  if (!isVendor) return;
+  const s = await api('/api/vendor/today').catch(() => null); if (!s) return;
+  $('#sToday').textContent = s.today; $('#sTotal').textContent = s.total;
+  $('#recent').innerHTML = s.recent.length ? `<h2>ล่าสุด</h2><div class="card">${s.recent.map((r) => `<div class="row"><span>${esc(r.name)}</span><span class="muted">${esc(r.created_at.slice(11, 16))} UTC</span></div>`).join('')}</div>` : '';
+}
+loadStats();
+$('#manual').addEventListener('submit', (e) => { e.preventDefault(); const code = new FormData(e.target).get('code').replace(/\D/g, ''); if (code) submit({ code }); e.target.reset(); });
+
+// camera + QR decode
+const video = $('#cam'), cv = $('#cv'), ctx = cv.getContext('2d', { willReadFrequently: true });
+try {
+  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+  video.srcObject = stream; await video.play(); $('#camMsg').textContent = 'เล็งกล้องไปที่ QR ของผู้เล่น';
+  const tick = () => {
+    if (!busy && video.readyState >= 2 && video.videoWidth) {
+      const w = 480, h = Math.round(w * video.videoHeight / video.videoWidth);
+      cv.width = w; cv.height = h; ctx.drawImage(video, 0, 0, w, h);
+      const q = window.jsQR(ctx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' });
+      if (q?.data && !(q.data === last && Date.now() - lastAt < 5000)) { last = q.data; lastAt = Date.now(); submit({ token: q.data }); }
+    }
+    setTimeout(() => requestAnimationFrame(tick), 120);
+  };
+  tick();
+} catch (e) {
+  $('#camMsg').textContent = location.protocol === 'http:' && location.hostname !== 'localhost'
+    ? 'เปิดกล้องไม่ได้ — ต้องใช้ HTTPS' : 'เปิดกล้องไม่ได้ — อนุญาตสิทธิ์กล้อง หรือใช้รหัส 6 หลักด้านล่าง';
+}
+</script></body></html>

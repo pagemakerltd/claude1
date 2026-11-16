@@ -1,0 +1,34 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin — Stamp Rally</title><link rel="stylesheet" href="/app.css"></head><body><main style="max-width:720px">
+<div class="row"><h1>Admin</h1><button class="btn ghost" id="out">ออก</button></div>
+<div class="stat" id="stats"></div>
+<div id="secret"></div>
+<h2>บูธ (Vendor)</h2>
+<form class="card row" id="addV"><input name="name" placeholder="ชื่อบูธ" required style="margin:0"><input name="booth" placeholder="เลขบูธ" style="margin:0;max-width:110px"><button class="btn">เพิ่ม</button></form>
+<div class="card" style="overflow:auto"><table id="vendors"></table></div>
+<h2>ทีมงานจุดแลกรางวัล (Staff)</h2>
+<form class="card row" id="addS"><input name="name" placeholder="ชื่อทีมงาน" style="margin:0"><button class="btn">เพิ่ม</button></form>
+<div class="card" style="overflow:auto"><table id="staff"></table></div></main>
+<script type="module">
+import { api, $, esc, toast, logout } from '/common.js';
+try { const me = await api('/api/me'); if (me.role !== 'admin') throw 0; } catch { location.href = '/staff-login'; }
+$('#out').onclick = logout;
+const secret = (title, r) => { $('#secret').innerHTML = `<div class="card" style="border-color:var(--brand);border-width:2px"><b>${title}</b><br>ชื่อผู้ใช้: <b>${esc(r.username)}</b> · PIN: <b style="font-size:22px">${esc(r.pin)}</b><div class="muted">จดไว้ตอนนี้ — PIN จะไม่แสดงอีก (รีเซ็ตได้ภายหลัง)</div></div>`; };
+async function load() {
+  const o = await api('/api/admin/overview');
+  $('#stats').innerHTML = [['ผู้เล่น', o.players], ['แสตมป์ที่แจก', o.stamps], [`ครบ ${o.required} ใบ`, o.completed], ['แลกรางวัลแล้ว', o.redeemed]].map(([l, n]) => `<div><b>${n}</b><span class="muted">${l}</span></div>`).join('');
+  $('#vendors').innerHTML = '<tr><th>บูธ</th><th>user</th><th>แสตมป์</th><th></th></tr>' + o.vendors.map((v) => `<tr><td>${esc(v.name)} <span class="muted">${esc(v.booth)}</span> ${v.is_active ? '' : '<span class="tag">ปิด</span>'}</td><td>${esc(v.username)}</td><td>${v.stamps}</td>
+    <td><button class="btn ghost" data-t="${v.id}">${v.is_active ? 'ปิด' : 'เปิด'}</button> <button class="btn ghost" data-r="${esc(v.username)}">รีเซ็ต PIN</button></td></tr>`).join('');
+  $('#staff').innerHTML = '<tr><th>ชื่อ</th><th>user</th><th></th></tr>' + o.staff.map((s) => `<tr><td>${esc(s.name)}</td><td>${esc(s.username)}</td><td><button class="btn ghost" data-r="${esc(s.username)}">รีเซ็ต PIN</button></td></tr>`).join('');
+}
+document.addEventListener('click', async (e) => {
+  const t = e.target.dataset?.t, r = e.target.dataset?.r;
+  try {
+    if (t) { await api('/api/admin/vendors/toggle', { id: Number(t) }); load(); }
+    if (r) secret('PIN ใหม่', await api('/api/admin/accounts/reset-pin', { username: r }));
+  } catch (x) { toast(x.message, false); }
+});
+$('#addV').addEventListener('submit', async (e) => { e.preventDefault(); try { secret('สร้างบูธแล้ว', await api('/api/admin/vendors', Object.fromEntries(new FormData(e.target)))); e.target.reset(); load(); } catch (x) { toast(x.message, false); } });
+$('#addS').addEventListener('submit', async (e) => { e.preventDefault(); try { secret('สร้างทีมงานแล้ว', await api('/api/admin/staff', Object.fromEntries(new FormData(e.target)))); e.target.reset(); load(); } catch (x) { toast(x.message, false); } });
+load(); setInterval(load, 10000);
+</script></body></html>
