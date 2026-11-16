@@ -6,7 +6,7 @@
     python3 uid_finder.py urls.txt     # โหมด CLI อ่านจากไฟล์ (หรือ - สำหรับ stdin) พิมพ์ผล TSV
 ไม่ต้องติดตั้งอะไรเพิ่ม (Python 3.8+ เท่านั้น)
 """
-import json, re, sys, urllib.request, urllib.error, urllib.parse, gzip, zlib
+import json, os, re, sys, urllib.request, urllib.error, urllib.parse, gzip, zlib
 from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -15,6 +15,7 @@ UA_BROWSER = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 UA_FB_BOT = "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uaxyz.php)"
 IG_APP_ID = "936619743392459"
+MAX_URLS = int(os.environ.get("MAX_URLS", 100))  # กันใช้หนักเกินเมื่อขึ้นเว็บสาธารณะ
 
 FB_HOSTS = re.compile(r"(^|\.)(facebook\.com|fb\.com|fb\.me|fb\.watch)$", re.I)
 IG_HOSTS = re.compile(r"(^|\.)(instagram\.com|instagr\.am)$", re.I)
@@ -175,6 +176,7 @@ def resolve_many(text, workers=6):
             if tok and tok not in seen:
                 seen.add(tok)
                 lines.append(tok)
+    lines = lines[:MAX_URLS]
     with ThreadPoolExecutor(workers) as ex:
         return [r for r in ex.map(resolve, lines) if r]
 
@@ -196,7 +198,7 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, page, "text/html; charset=utf-8")
 
     def do_POST(self):
-        n = int(self.headers.get("Content-Length", 0))
+        n = min(int(self.headers.get("Content-Length", 0)), 1_000_000)
         text = json.loads(self.rfile.read(n) or b"{}").get("text", "")
         self._send(200, json.dumps(resolve_many(text)), "application/json")
 
@@ -207,9 +209,11 @@ def main():
         for r in resolve_many(src):
             print(f"{r['input']}\t{r['id'] or 'ERROR'}\t{r['note']}")
         return
-    port = 8765
-    print(f"เปิดเบราว์เซอร์ที่ http://127.0.0.1:{port}  (Ctrl+C เพื่อออก)")
-    ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
+    # ขึ้นเว็บจริง: ตั้ง HOST=0.0.0.0 และ PORT ตามที่โฮสต์กำหนด (Dockerfile ตั้งให้แล้ว)
+    host = os.environ.get("HOST", "127.0.0.1")
+    port = int(os.environ.get("PORT", 8765))
+    print(f"เปิดเบราว์เซอร์ที่ http://{host}:{port}  (Ctrl+C เพื่อออก)")
+    ThreadingHTTPServer((host, port), Handler).serve_forever()
 
 
 if __name__ == "__main__":
