@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Badge Maker</title>
+<style>
+:root{--bg:#f4f5f7;--panel:#fff;--ink:#1f2430;--mut:#6b7280;--line:#d9dce3;--acc:#2563eb;--danger:#e11d48}
+@media(prefers-color-scheme:dark){:root{--bg:#14161b;--panel:#1d2027;--ink:#e8eaf0;--mut:#9aa1b0;--line:#323744;--acc:#6ea0ff;--danger:#ff6b8a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 "Segoe UI","Leelawadee UI",Tahoma,sans-serif;height:100vh;display:flex;flex-direction:column}
+header{display:flex;gap:8px;align-items:center;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{font-size:16px;margin:0 8px 0 0}
+button,select,input,textarea{font:inherit;color:inherit}
+button{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
+button:hover{border-color:var(--acc)}
+button.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+button.danger{color:var(--danger)}
+input[type=text],input[type=number],select{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 6px;min-width:0}
+nav{display:flex;gap:2px;padding:6px 12px 0;background:var(--panel);border-bottom:1px solid var(--line)}
+nav button{border:none;border-bottom:3px solid transparent;border-radius:0;background:none;padding:8px 14px}
+nav button.on{border-bottom-color:var(--acc);font-weight:600}
+main{flex:1;min-height:0;display:flex}
+section{display:none;flex:1;min-width:0}
+section.on{display:flex}
+#stage{flex:1;min-width:0;background:#6b7280;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:14px}
+#wrap{position:relative;line-height:0;box-shadow:0 4px 20px #0006}
+#wrap canvas{display:block;max-width:100%}
+#ov{position:absolute;left:0;top:0;touch-action:none;cursor:crosshair}
+aside{width:340px;background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:10px;display:flex;flex-direction:column;gap:10px}
+fieldset{border:1px solid var(--line);border-radius:8px;margin:0;padding:8px}
+legend{color:var(--mut);padding:0 4px}
+.row{display:flex;gap:6px;align-items:center;margin:3px 0;flex-wrap:wrap}
+.row label{width:64px;color:var(--mut)}
+.row input[type=number]{width:70px}
+.row input[type=text]{flex:1}
+#flist{list-style:none;margin:0 0 6px;padding:0;max-height:160px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+#flist li{padding:4px 8px;cursor:pointer}
+#flist li.on{background:var(--acc);color:#fff}
+.pad{padding:12px;flex:1;min-width:0;overflow:auto}
+table{border-collapse:collapse;width:100%;background:var(--panel)}
+th,td{border:1px solid var(--line);padding:5px 8px;text-align:left}
+th{background:var(--bg);position:sticky;top:0}
+tr.sel td{background:color-mix(in srgb,var(--acc) 22%,transparent)}
+td img{height:36px;border-radius:4px;vertical-align:middle}
+.bar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;max-width:760px}
+.card h3{margin:0 0 8px;font-size:15px}
+.hint{color:var(--mut);font-size:12px}
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);min-width:340px}
+dialog::backdrop{background:#0008}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 16px;border-radius:8px;display:none}
+#printarea{display:none}
+@media print{
+ body>*:not(#printarea){display:none!important}
+ #printarea{display:block}
+ @page{margin:0}
+ .sheet{break-after:page;position:relative;overflow:hidden}
+ .sheet img{position:absolute;outline:.1mm solid #aaa}
+}
+@media(max-width:800px){main,section.on{flex-direction:column}aside{width:auto;border-left:none}}
+</style>
+</head>
+<body>
+<header>
+ <h1>🪪 Badge Maker</h1>
+ <select id="tplSel"></select>
+ <button id="bNew">＋ ใหม่</button><button id="bDup">คัดลอก</button><button id="bRen">เปลี่ยนชื่อ</button><button id="bDel" class="danger">ลบ</button>
+ <span style="flex:1"></span>
+ <button id="bBackup">สำรองข้อมูล</button><button id="bRestore">กู้คืน</button>
+ <input type="file" id="fRestore" accept=".json" hidden>
+</header>
+<nav id="tabs"><button data-t="edit" class="on">1. ออกแบบ Template</button><button data-t="data">2. ข้อมูล</button><button data-t="exp">3. สร้างป้ายแบบ Batch</button></nav>
+<main>
+<section id="edit" class="on">
+ <div id="stage"><div id="wrap"><canvas id="cv"></canvas><canvas id="ov"></canvas></div></div>
+ <aside>
+  <fieldset><legend>Template</legend>
+   <div id="sizeLbl" class="hint"></div>
+   <div class="row"><input type="color" id="bgColor"><button id="bBgImg">รูปพื้นหลัง…</button><button id="bBgClr">ล้างรูป</button><input type="file" id="fBg" accept="image/*" hidden></div>
+  </fieldset>
+  <fieldset><legend>ช่องข้อมูล (เพิ่ม/ลบจำนวนจุดได้)</legend>
+   <ul id="flist"></ul>
+   <div class="row"><button id="aText">＋ ข้อความ</button><button id="aImg">＋ รูปภาพ</button><button id="aCopy">ทำซ้ำ</button><button id="aDel" class="danger">ลบ</button></div>
+  </fieldset>
+  <fieldset id="props" disabled><legend>คุณสมบัติของช่องที่เลือก</legend>
+   <div class="row"><label>ชื่อช่อง</label><input type="text" id="p_name"></div>
+   <div class="row"><label>X / Y</label><input type="number" id="p_x"><input type="number" id="p_y"></div>
+   <div class="row"><label>กว้าง/สูง</label><input type="number" id="p_w" min="1"><input type="number" id="p_h" min="1"></div>
+   <div id="pText">
+    <div class="row"><label>ฟอนต์</label><input type="text" id="p_font" list="fontList"><datalist id="fontList"></datalist></div>
+    <div class="row"><label></label><button id="bFonts" title="ต้องใช้ Chrome/Edge">โหลดฟอนต์ในเครื่อง</button><button id="bFontFile">เพิ่มไฟล์ฟอนต์…</button><input type="file" id="fFont" accept=".ttf,.otf,.woff,.woff2" hidden></div>
+    <div class="row"><label>ขนาด (px)</label><input type="number" id="p_size" min="6"><input type="color" id="p_color"></div>
+    <div class="row"><label>ตัวอักษร</label><label style="width:auto"><input type="checkbox" id="p_bold"> หนา</label><label style="width:auto"><input type="checkbox" id="p_italic"> เอียง</label></div>
+    <div class="row"><label>จัดแนว</label><select id="p_align"><option>left</option><option>center</option><option>right</option></select><select id="p_valign"><option>top</option><option>middle</option><option>bottom</option></select></div>
+    <div class="row"><label style="width:auto"><input type="checkbox" id="p_autofit"> ย่อให้พอดีกรอบอัตโนมัติ</label></div>
+    <div class="row"><label style="width:auto"><input type="checkbox" id="p_wrap"> ตัดบรรทัดอัตโนมัติ</label></div>
+    <div class="row"><label>ข้อความตั้งต้น</label><input type="text" id="p_default"></div>
+   </div>
+   <div id="pImg">
+    <div class="row"><label>การจัดรูป</label><select id="p_fit"><option value="cover">cover (ตัดเต็มกรอบ)</option><option value="contain">contain (เห็นครบ)</option><option value="stretch">stretch (ยืด)</option></select></div>
+    <div class="row"><label>รูปทรง</label><select id="p_shape"><option value="rect">สี่เหลี่ยม</option><option value="round">มุมมน</option><option value="ellipse">วงกลม/วงรี</option></select></div>
+   </div>
+  </fieldset>
+  <div class="hint">ลากกรอบเพื่อย้าย · ลากจุดมุมขวาล่างเพื่อปรับขนาด · ลูกศรขยับทีละ 1px (Shift = 10px)</div>
+ </aside>
+</section>
+<section id="data"><div class="pad">
+ <div class="bar"><button id="dAdd" class="primary">＋ เพิ่มแถว</button><button id="dEdit">แก้ไข</button><button id="dDel" class="danger">ลบที่เลือก</button>
+ <button id="dFiles">นำเข้ารูปหลายไฟล์…</button><button id="dFolder">นำเข้าทั้งโฟลเดอร์…</button><button id="dCsv">นำเข้า CSV…</button>
+ <input type="file" id="fFolder" accept="image/*" multiple webkitdirectory hidden><input type="file" id="fFiles" accept="image/*" multiple hidden><input type="file" id="fCsv" accept=".csv" hidden><input type="file" id="fCsvImgs" accept="image/*" multiple hidden></div>
+ <div class="hint" style="margin-bottom:8px">ข้อมูลเก็บแยกตาม Template ในเบราว์เซอร์นี้ (IndexedDB) · คลิกแถวเพื่อเลือก (Ctrl/Shift เลือกหลายแถว) · ดับเบิลคลิกเพื่อแก้ไข · นำเข้ารูป: ชื่อไฟล์ → ช่องข้อความแรก, รูป → ช่องรูปแรก</div>
+ <table id="tbl"></table>
+</div></section>
+<section id="exp"><div class="pad">
+ <div class="card"><h3>เลือกข้อมูล</h3>
+  <label><input type="radio" name="scope" value="all" checked> ทุกแถว</label>
+  <label style="margin-left:14px"><input type="radio" name="scope" value="sel"> เฉพาะแถวที่เลือกในแท็บ "ข้อมูล"</label>
+  <div id="xCount" class="hint"></div></div>
+ <div class="card"><h3>A) ไฟล์ภาพแยกทีละใบ (ดาวน์โหลดเป็น ZIP)</h3>
+  <div class="row"><select id="xFmt"><option>PNG</option><option>JPG</option></select><span>ตั้งชื่อไฟล์จากช่อง</span><select id="xName"></select><button id="xZip" class="primary">สร้าง ZIP</button></div></div>
+ <div class="card"><h3>B) จัดหลายใบลงกระดาษ → พิมพ์ / บันทึกเป็น PDF</h3>
+  <div class="row"><select id="xPage"><option>A4</option><option>A3</option><option>Letter</option></select>
+  <label style="width:auto"><input type="checkbox" id="xLand"> แนวนอน</label>
+  <span>ขอบ(mm)</span><input type="number" id="xMargin" value="8" style="width:60px"><span>ห่าง(mm)</span><input type="number" id="xGap" value="2" style="width:60px">
+  <button id="xPrint" class="primary">สร้างหน้าพิมพ์</button></div>
+  <div class="hint">จะเปิดหน้าต่างพิมพ์ของเบราว์เซอร์ → เลือกเครื่องพิมพ์ หรือ "บันทึกเป็น PDF" (ตั้ง Margins = None, Scale 100%)</div></div>
+ <div id="xProg" class="hint"></div>
+</div></section>
+</main>
+<div id="printarea"></div>
+<div id="toast"></div>
+<dialog id="dlg"><form method="dialog" id="dlgForm"></form></dialog>
+
+<script>
+"use strict";
+/* ============ tiny IndexedDB ============ */
+const DB = (() => {
+  let db;
+  const open = () => new Promise((res, rej) => {
+    const r = indexedDB.open("badgemaker", 1);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      d.createObjectStore("templates", {keyPath: "id", autoIncrement: true});
+      d.createObjectStore("records", {keyPath: "id", autoIncrement: true}).createIndex("tid", "tid");
+      d.createObjectStore("blobs");
+      d.createObjectStore("fonts", {keyPath: "name"});
+    };
+    r.onsuccess = () => { db = r.result; res(); };
+    r.onerror = () => rej(r.error);
+  });
+  const rq = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  const st = (s, m = "readonly") => db.transaction(s, m).objectStore(s);
+  return {
+    open,
+    all: s => rq(st(s).getAll()),
+    get: (s, k) => rq(st(s).get(k)),
+    put: (s, v, k) => rq(st(s, "readwrite").put(v, k)),
+    del: (s, k) => rq(st(s, "readwrite").delete(k)),
+    byTid: tid => rq(st("records").index("tid").getAll(tid)),
+    keys: s => rq(st(s).getAllKeys()),
+    clear: s => rq(st(s, "readwrite").clear()),
+  };
+})();
+
+/* ============ helpers ============ */
+const $ = id => document.getElementById(id);
+const uid = () => Math.random().toString(36).slice(2, 10);
+const mm2px = (mm, dpi) => Math.max(1, Math.round(mm / 25.4 * dpi));
+function toast(m) { const t = $("toast"); t.textContent = m; t.style.display = "block"; clearTimeout(t._t); t._t = setTimeout(() => t.style.display = "none", 2800); }
+function dialog(html, onOk) {
+  const d = $("dlg"), f = $("dlgForm");
+  f.innerHTML = html + '<div class="row" style="justify-content:flex-end;margin-top:12px"><button value="cancel">ยกเลิก</button><button value="ok" class="primary">ตกลง</button></div>';
+  d.onclose = () => { if (d.returnValue === "ok") onOk(f); };
+  d.returnValue = ""; d.showModal();
+}
+const imgCache = new Map();
+async function getBitmap(id) {
+  if (!id) return null;
+  if (imgCache.has(id)) return imgCache.get(id);
+  const blob = await DB.get("blobs", id);
+  const bm = blob ? await createImageBitmap(blob, {imageOrientation: "from-image"}).catch(() => null) : null;
+  imgCache.set(id, bm);
+  return bm;
+}
+async function storeBlob(file) { const id = uid(); await DB.put("blobs", file, id); return id; }
+
+/* ============ fonts ============ */
+const COMMON_FONTS = ["Tahoma","Leelawadee UI","Segoe UI","Arial","Calibri","Times New Roman","Georgia","Verdana","Impact","Comic Sans MS","Courier New","TH Sarabun New","Angsana New","Cordia New","Noto Sans Thai","Sarabun","Prompt","Kanit"];
+const fontSet = new Set(COMMON_FONTS);
+function refreshFontList() { $("fontList").innerHTML = [...fontSet].sort().map(f => `<option value="${f}">`).join(""); }
+async function loadSavedFonts() {
+  for (const f of await DB.all("fonts")) {
+    try { const ff = new FontFace(f.name, await f.blob.arrayBuffer()); await ff.load(); document.fonts.add(ff); fontSet.add(f.name); } catch {}
+  }
+  refreshFontList();
+}
+
+/* ============ state ============ */
+const S = {tpl: null, sel: null, recs: [], selRows: new Set(), scale: 1};
+function newField(kind, name, w, h) {
+  const f = {id: uid(), type: kind, name, x: Math.round(w / 10), y: Math.round(h / 10), w: Math.round(w / 2), h: kind === "text" ? Math.round(h / 8) : Math.round(w / 3), default: ""};
+  if (kind === "text") Object.assign(f, {font: "Tahoma", size: Math.max(12, Math.round(h / 20)), color: "#000000", bold: false, italic: false, align: "center", valign: "middle", autofit: true, wrap: false});
+  else Object.assign(f, {fit: "cover", shape: "rect"});
+  return f;
+}
+const saveTpl = () => DB.put("templates", S.tpl);
+
+/* ============ renderer ============ */
+function wrapLines(ctx, text, maxW) {
+  const out = [];
+  for (const para of text.split("\n")) {
+    const spaced = para.includes(" "), toks = spaced ? para.split(" ") : [...para], sep = spaced ? " " : "";
+    let cur = "";
+    for (const t of toks) {
+      const trial = cur ? cur + sep + t : t;
+      if (ctx.measureText(trial).width <= maxW || !cur) cur = trial; else { out.push(cur); cur = t; }
+    }
+    out.push(cur);
+  }
+  return out;
+}
+function drawText(ctx, f, text) {
+  const mk = sz => `${f.italic ? "italic " : ""}${f.bold ? "bold " : ""}${sz}px "${f.font}", "Leelawadee UI", Tahoma, sans-serif`;
+  let size = f.size, lines, lh, widest;
+  const layout = () => {
+    ctx.font = mk(size);
+    lines = f.wrap ? wrapLines(ctx, text, f.w) : text.split("\n");
+    lh = size * 1.25;
+    widest = Math.max(...lines.map(l => ctx.measureText(l).width));
+  };
+  layout();
+  if (f.autofit) while (size > 6 && (widest > f.w || lh * lines.length > f.h)) { size--; layout(); }
+  const total = lh * lines.length;
+  let y = f.valign === "top" ? 0 : f.valign === "middle" ? (f.h - total) / 2 : f.h - total;
+  ctx.fillStyle = f.color; ctx.textBaseline = "middle"; ctx.textAlign = f.align;
+  const x = f.align === "left" ? 0 : f.align === "center" ? f.w / 2 : f.w;
+  for (const l of lines) { ctx.fillText(l, f.x + x, f.y + y + lh / 2); y += lh; }
+}
+function shapePath(ctx, f) {
+  ctx.beginPath();
+  if (f.shape === "ellipse") ctx.ellipse(f.x + f.w / 2, f.y + f.h / 2, f.w / 2, f.h / 2, 0, 0, Math.PI * 2);
+  else if (f.shape === "round") ctx.roundRect(f.x, f.y, f.w, f.h, Math.min(f.w, f.h) / 5);
+  else ctx.rect(f.x, f.y, f.w, f.h);
+}
+function drawImg(ctx, f, bm) {
+  ctx.save(); shapePath(ctx, f); ctx.clip();
+  const iw = bm.width, ih = bm.height;
+  if (f.fit === "stretch") ctx.drawImage(bm, f.x, f.y, f.w, f.h);
+  else {
+    const k = f.fit === "cover" ? Math.max(f.w / iw, f.h / ih) : Math.min(f.w / iw, f.h / ih);
+    const dw = iw * k, dh = ih * k;
+    ctx.drawImage(bm, f.x + (f.w - dw) / 2, f.y + (f.h - dh) / 2, dw, dh);
+  }
+  ctx.restore();
+}
+async function renderCard(tpl, data, canvas, preview) {
+  canvas.width = tpl.width; canvas.height = tpl.height;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = tpl.bgColor; ctx.fillRect(0, 0, tpl.width, tpl.height);
+  if (tpl.bgImage) { const bm = await getBitmap(tpl.bgImage); if (bm) { const k = Math.max(tpl.width / bm.width, tpl.height / bm.height); ctx.drawImage(bm, (tpl.width - bm.width * k) / 2, (tpl.height - bm.height * k) / 2, bm.width * k, bm.height * k); } }
+  for (const f of tpl.fields) {
+    const val = data[f.name] || f.default || "";
+    if (f.type === "text") {
+      const t = val || (preview ? f.name : "");
+      if (t) drawText(ctx, f, String(t));
+    } else {
+      const bm = await getBitmap(val);
+      if (bm) drawImg(ctx, f, bm);
+      else if (preview) {
+        ctx.save(); shapePath(ctx, f); ctx.fillStyle = "#e1e1e1"; ctx.fill(); ctx.clip();
+        ctx.strokeStyle = "#bbb"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(f.x + f.w, f.y + f.h); ctx.moveTo(f.x, f.y + f.h); ctx.lineTo(f.x + f.w, f.y); ctx.stroke(); ctx.restore();
+      }
+    }
+  }
+}
+
+/* ============ editor ============ */
+let rafId = 0;
+function redraw() { cancelAnimationFrame(rafId); rafId = requestAnimationFrame(doRedraw); }
+async function doRedraw() {
+  const t = S.tpl, cv = $("cv"), ov = $("ov");
+  if (!t) { cv.width = 300; cv.height = 100; cv.getContext("2d").fillText("กด ＋ ใหม่ เพื่อสร้าง Template", 20, 50); ov.width = 0; return; }
+  const sample = S.recs[0]?.data || {};
+  await renderCard(t, sample, cv, true);
+  const st = $("stage"), availW = st.clientWidth - 28, availH = st.clientHeight - 28;
+  S.scale = Math.min(availW / t.width, availH / t.height);
+  const cw = Math.floor(t.width * S.scale), ch = Math.floor(t.height * S.scale);
+  cv.style.width = cw + "px"; cv.style.height = ch + "px";
+  ov.width = t.width; ov.height = t.height; ov.style.width = cw + "px"; ov.style.height = ch + "px";
+  const c = ov.getContext("2d"), px = 1 / S.scale;
+  for (const f of t.fields) {
+    const on = f === S.sel;
+    c.strokeStyle = on ? "#e11d48" : "#2563eb"; c.lineWidth = (on ? 2.5 : 1.5) * px;
+    c.setLineDash(on ? [] : [6 * px, 4 * px]); c.strokeRect(f.x, f.y, f.w, f.h);
+    if (on) { c.fillStyle = "#e11d48"; c.fillRect(f.x + f.w - 8 * px, f.y + f.h - 8 * px, 16 * px, 16 * px); }
+  }
+}
+window.addEventListener("resize", redraw);
+
+const P = ["name","x","y","w","h","font","size","color","align","valign","default","fit","shape"];
+function loadTplUI() {
+  const t = S.tpl;
+  $("sizeLbl").textContent = t ? `${t.width}×${t.height} px (${(t.width / t.dpi * 25.4).toFixed(1)}×${(t.height / t.dpi * 25.4).toFixed(1)} mm @ ${t.dpi} dpi)` : "";
+  if (t) $("bgColor").value = t.bgColor;
+  const ul = $("flist"); ul.innerHTML = "";
+  (t?.fields || []).forEach(f => {
+    const li = document.createElement("li");
+    li.textContent = (f.type === "text" ? "🔤 " : "🖼 ") + f.name;
+    if (f === S.sel) li.className = "on";
+    li.onclick = () => { S.sel = f; loadTplUI(); redraw(); };
+    ul.appendChild(li);
+  });
+  const f = S.sel;
+  $("props").disabled = !f;
+  if (!f) return;
+  $("pText").style.display = f.type === "text" ? "" : "none";
+  $("pImg").style.display = f.type === "image" ? "" : "none";
+  for (const k of P) if ($("p_" + k) && f[k] !== undefined) $("p_" + k).value = f[k];
+  for (const k of ["bold","italic","autofit","wrap"]) $("p_" + k).checked = !!f[k];
+}
+for (const k of P) $("p_" + k).addEventListener("input", async e => {
+  const f = S.sel; if (!f) return;
+  let v = e.target.value;
+  if (["x","y","w","h","size"].includes(k)) { v = Math.round(+v); if (isNaN(v)) return; if (["w","h","size"].includes(k)) v = Math.max(1, v); }
+  if (k === "name") {
+    v = v.trim();
+    if (!v || S.tpl.fields.some(o => o !== f && o.name === v)) return;
+    for (const r of S.recs) if (f.name in r.data) { r.data[v] = r.data[f.name]; delete r.data[f.name]; await DB.put("records", r); }
+    f.name = v; [...$("flist").children][S.tpl.fields.indexOf(f)].textContent = (f.type === "text" ? "🔤 " : "🖼 ") + v;
+  }
+  f[k] = v; saveTpl(); redraw();
+});
+for (const k of ["bold","italic","autofit","wrap"]) $("p_" + k).addEventListener("change", e => { S.sel[k] = e.target.checked; saveTpl(); redraw(); });
+$("bgColor").oninput = e => { S.tpl.bgColor = e.target.value; saveTpl(); redraw(); };
+$("bBgImg").onclick = () => $("fBg").click();
+$("fBg").onchange = async e => { if (e.target.files[0] && S.tpl) { S.tpl.bgImage = await storeBlob(e.target.files[0]); saveTpl(); redraw(); } e.target.value = ""; };
+$("bBgClr").onclick = () => { if (S.tpl) { S.tpl.bgImage = ""; saveTpl(); redraw(); } };
+$("bFonts").onclick = async () => {
+  if (!window.queryLocalFonts) return toast("เบราว์เซอร์นี้ไม่รองรับ — พิมพ์ชื่อฟอนต์เอง หรือเพิ่มไฟล์ฟอนต์");
+  try { (await queryLocalFonts()).forEach(f => fontSet.add(f.family)); refreshFontList(); toast("โหลดรายชื่อฟอนต์แล้ว คลิกช่องฟอนต์เพื่อเลือก"); } catch { toast("ไม่ได้รับอนุญาต"); }
+};
+$("bFontFile").onclick = () => $("fFont").click();
+$("fFont").onchange = async e => {
+  const file = e.target.files[0]; if (!file) return;
+  const name = file.name.replace(/\.[^.]+$/, "");
+  try { const ff = new FontFace(name, await file.arrayBuffer()); await ff.load(); document.fonts.add(ff);
+    await DB.put("fonts", {name, blob: file}); fontSet.add(name); refreshFontList();
+    if (S.sel?.type === "text") { S.sel.font = name; $("p_font").value = name; saveTpl(); redraw(); }
+    toast("เพิ่มฟอนต์ " + name); } catch { toast("ไฟล์ฟอนต์ไม่ถูกต้อง"); }
+  e.target.value = "";
+};
+function addField(kind) {
+  if (!S.tpl) return toast("สร้าง Template ก่อน");
+  const base = kind === "text" ? "text" : "photo"; let n = 1;
+  while (S.tpl.fields.some(f => f.name === base + n)) n++;
+  const f = newField(kind, base + n, S.tpl.width, S.tpl.height);
+  S.tpl.fields.push(f); S.sel = f; saveTpl(); loadTplUI(); redraw();
+}
+$("aText").onclick = () => addField("text");
+$("aImg").onclick = () => addField("image");
+$("aCopy").onclick = () => {
+  const o = S.sel; if (!o) return;
+  const f = {...o, id: uid()}, base = o.name.replace(/\d+$/, "") || o.name; let n = 2;
+  while (S.tpl.fields.some(x => x.name === base + n)) n++;
+  f.name = base + n; f.x += 20; f.y += 20;
+  S.tpl.fields.push(f); S.sel = f; saveTpl(); loadTplUI(); redraw();
+};
+$("aDel").onclick = () => { if (S.sel && confirm(`ลบช่อง '${S.sel.name}' ?`)) { S.tpl.fields = S.tpl.fields.filter(f => f !== S.sel); S.sel = null; saveTpl(); loadTplUI(); redraw(); } };
+
+/* canvas drag / resize */
+let drag = null;
+const ovp = e => { const r = $("ov").getBoundingClientRect(); return [(e.clientX - r.left) / S.scale, (e.clientY - r.top) / S.scale]; };
+$("ov").addEventListener("pointerdown", e => {
+  if (!S.tpl) return;
+  const [x, y] = ovp(e), hs = 14 / S.scale, f0 = S.sel;
+  if (f0 && Math.abs(x - (f0.x + f0.w)) < hs && Math.abs(y - (f0.y + f0.h)) < hs) drag = {k: "r", x, y, w: f0.w, h: f0.h};
+  else {
+    const hit = [...S.tpl.fields].reverse().find(f => x >= f.x && x <= f.x + f.w && y >= f.y && y <= f.y + f.h);
+    S.sel = hit || null; loadTplUI();
+    drag = hit ? {k: "m", x, y, fx: hit.x, fy: hit.y} : null;
+  }
+  if (drag) $("ov").setPointerCapture(e.pointerId);
+  redraw();
+});
+$("ov").addEventListener("pointermove", e => {
+  if (!drag || !S.sel) return;
+  const [x, y] = ovp(e), f = S.sel;
+  if (drag.k === "m") { f.x = Math.round(drag.fx + x - drag.x); f.y = Math.round(drag.fy + y - drag.y); }
+  else { f.w = Math.max(10, Math.round(drag.w + x - drag.x)); f.h = Math.max(10, Math.round(drag.h + y - drag.y)); }
+  for (const k of ["x","y","w","h"]) $("p_" + k).value = f[k];
+  redraw();
+});
+$("ov").addEventListener("pointerup", () => { if (drag) { drag = null; saveTpl(); } });
+addEventListener("keydown", e => {
+  if (!S.sel || !$("edit").classList.contains("on") || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  const d = e.shiftKey ? 10 : 1, m = {ArrowLeft: ["x", -d], ArrowRight: ["x", d], ArrowUp: ["y", -d], ArrowDown: ["y", d]}[e.key];
+  if (m) { e.preventDefault(); S.sel[m[0]] += m[1]; $("p_" + m[0]).value = S.sel[m[0]]; saveTpl(); redraw(); }
+});
+
+/* ============ templates ============ */
+async function refreshTemplates(selectId) {
+  const list = (await DB.all("templates")).sort((a, b) => a.name.localeCompare(b.name));
+  $("tplSel").innerHTML = list.map(t => `<option value="${t.id}">${t.name.replace(/</g, "&lt;")}</option>`).join("");
+  const want = selectId ?? S.tpl?.id;
+  S.tpl = list.find(t => t.id === want) || list[0] || null;
+  if (S.tpl) $("tplSel").value = S.tpl.id;
+  S.sel = null; await loadRecs(); loadTplUI(); redraw(); renderTable(); refreshExport();
+}
+$("tplSel").onchange = async e => { S.tpl = await DB.get("templates", +e.target.value); S.sel = null; S.selRows.clear(); await loadRecs(); loadTplUI(); redraw(); renderTable(); refreshExport(); };
+async function loadRecs() { S.recs = S.tpl ? (await DB.byTid(S.tpl.id)).sort((a, b) => a.id - b.id) : []; }
+const PRESETS = {"บัตรพนักงาน CR80 แนวตั้ง (54×86)": [54, 86], "บัตรพนักงาน CR80 แนวนอน (86×54)": [86, 54], "ป้ายชื่อ 90×60": [90, 60], "ป้ายชื่อ 100×70": [100, 70], "A6 (105×148)": [105, 148], "กำหนดเอง": [60, 90]};
+$("bNew").onclick = () => dialog(`
+  <div class="row"><label>ชื่อ</label><input type="text" name="n" value="ป้ายชื่อพนักงาน"></div>
+  <div class="row"><label>ขนาด</label><select id="pre">${Object.keys(PRESETS).map(k => `<option>${k}</option>`).join("")}</select></div>
+  <div class="row"><label>กว้าง×สูง mm</label><input type="number" name="w" id="nw" value="54"><input type="number" name="h" id="nh" value="86"></div>
+  <div class="row"><label>dpi</label><select name="dpi"><option>150</option><option selected>300</option><option>600</option></select></div>`, async f => {
+  const d = +f.dpi.value, t = {name: f.n.value.trim() || "Template", width: mm2px(+f.w.value, d), height: mm2px(+f.h.value, d), dpi: d, bgColor: "#ffffff", bgImage: "", fields: []};
+  const id = await DB.put("templates", t); refreshTemplates(id);
+});
+$("dlgForm").addEventListener("change", e => { if (e.target.id === "pre") { const [w, h] = PRESETS[e.target.value]; $("nw").value = w; $("nh").value = h; } });
+$("bDup").onclick = () => { if (!S.tpl) return; dialog(`<div class="row"><label>ชื่อใหม่</label><input type="text" name="n" value="${S.tpl.name} (copy)"></div><label><input type="checkbox" name="r"> คัดลอกข้อมูลด้วย</label>`, async f => {
+  const t = structuredClone(S.tpl); delete t.id; t.name = f.n.value || t.name + " copy";
+  const id = await DB.put("templates", t);
+  if (f.r.checked) for (const r of S.recs) await DB.put("records", {tid: id, data: {...r.data}});
+  refreshTemplates(id); }); };
+$("bRen").onclick = () => { if (S.tpl) dialog(`<div class="row"><input type="text" name="n" value="${S.tpl.name}"></div>`, async f => { S.tpl.name = f.n.value || S.tpl.name; await saveTpl(); refreshTemplates(); }); };
+$("bDel").onclick = async () => { if (S.tpl && confirm(`ลบ '${S.tpl.name}' พร้อมข้อมูลทั้งหมด?`)) { for (const r of S.recs) await DB.del("records", r.id); await DB.del("templates", S.tpl.id); S.tpl = null; refreshTemplates(); } };
+
+/* ============ tabs ============ */
+$("tabs").onclick = e => {
+  const t = e.target.dataset?.t; if (!t) return;
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b === e.target));
+  document.querySelectorAll("main>section").forEach(s => s.classList.toggle("on", s.id === t));
+  if (t === "edit") redraw(); if (t === "data") renderTable(); if (t === "exp") refreshExport();
+};
+
+/* ============ data ============ */
+async function renderTable() {
+  const t = S.tpl, tb = $("tbl");
+  if (!t) { tb.innerHTML = ""; return; }
+  let h = "<tr><th>#</th>" + t.fields.map(f => `<th>${f.type === "image" ? "🖼 " : ""}${f.name}</th>`).join("") + "</tr>";
+  const urls = {};
+  for (const r of S.recs) for (const f of t.fields) if (f.type === "image" && r.data[f.name]) { const b = await DB.get("blobs", r.data[f.name]); if (b) urls[r.data[f.name]] = URL.createObjectURL(b); }
+  S.recs.forEach((r, i) => {
+    h += `<tr data-id="${r.id}" class="${S.selRows.has(r.id) ? "sel" : ""}"><td>${i + 1}</td>` + t.fields.map(f => f.type === "image"
+      ? `<td>${urls[r.data[f.name]] ? `<img src="${urls[r.data[f.name]]}">` : ""}</td>` : `<td>${(r.data[f.name] || "").replace(/</g, "&lt;")}</td>`).join("") + "</tr>";
+  });
+  tb.innerHTML = h;
+}
+let lastRow = null;
+$("tbl").addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-id]"); if (!tr) return;
+  const id = +tr.dataset.id;
+  if (e.shiftKey && lastRow) { const ids = S.recs.map(r => r.id), a = ids.indexOf(lastRow), b = ids.indexOf(id); S.selRows = new Set(ids.slice(Math.min(a, b), Math.max(a, b) + 1)); }
+  else if (e.ctrlKey || e.metaKey) { S.selRows.has(id) ? S.selRows.delete(id) : S.selRows.add(id); lastRow = id; }
+  else { S.selRows = new Set([id]); lastRow = id; }
+  document.querySelectorAll("#tbl tr[data-id]").forEach(r => r.classList.toggle("sel", S.selRows.has(+r.dataset.id)));
+});
+$("tbl").addEventListener("dblclick", e => { const tr = e.target.closest("tr[data-id]"); if (tr) editRecord(S.recs.find(r => r.id === +tr.dataset.id)); });
+function editRecord(rec) {
+  const t = S.tpl; if (!t || !t.fields.length) return toast("ต้องมีช่องข้อมูลใน Template ก่อน");
+  const data = {...(rec?.data || {})}, files = {};
+  dialog(t.fields.map(f => f.type === "text"
+    ? `<div class="row"><label>${f.name}</label><input type="text" name="f_${f.id}" value="${(data[f.name] || "").replace(/"/g, "&quot;")}"></div>`
+    : `<div class="row"><label>${f.name}</label><input type="file" accept="image/*" name="f_${f.id}"><span class="hint">${data[f.name] ? "(มีรูปแล้ว)" : ""}</span></div>`).join(""),
+  async form => {
+    for (const f of t.fields) {
+      const el = form.elements["f_" + f.id];
+      if (f.type === "text") data[f.name] = el.value;
+      else if (el.files[0]) data[f.name] = await storeBlob(el.files[0]);
+    }
+    await DB.put("records", rec ? {...rec, data} : {tid: t.id, data});
+    await loadRecs(); renderTable(); redraw();
+  });
+}
+$("dAdd").onclick = () => editRecord(null);
+$("dEdit").onclick = () => { const id = [...S.selRows][0]; if (id) editRecord(S.recs.find(r => r.id === id)); };
+$("dDel").onclick = async () => { if (S.selRows.size && confirm(`ลบ ${S.selRows.size} แถว?`)) { for (const id of S.selRows) await DB.del("records", id); S.selRows.clear(); await loadRecs(); renderTable(); redraw(); } };
+$("dFolder").onclick = () => $("fFolder").click();
+$("dFiles").onclick = () => $("fFiles").click();
+$("fFolder").onchange = $("fFiles").onchange = async e => {
+  const t = S.tpl, imgF = t?.fields.find(f => f.type === "image"), txtF = t?.fields.find(f => f.type === "text");
+  if (!imgF) { toast("Template นี้ยังไม่มีช่องรูปภาพ"); e.target.value = ""; return; }
+  const files = [...e.target.files].filter(f => f.type.startsWith("image/")).sort((a, b) => a.name.localeCompare(b.name));
+  for (const f of files) { const d = {[imgF.name]: await storeBlob(f)}; if (txtF) d[txtF.name] = f.name.replace(/\.[^.]+$/, ""); await DB.put("records", {tid: t.id, data: d}); }
+  e.target.value = ""; await loadRecs(); renderTable(); redraw(); toast(`นำเข้า ${files.length} รูป`);
+};
+function parseCSV(text) {
+  const rows = []; let row = [], cur = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === ",") { row.push(cur); cur = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(cur); rows.push(row); row = []; cur = ""; }
+    else cur += c;
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(x => x.trim()));
+}
+let csvText = null;
+$("dCsv").onclick = () => { if (S.tpl) { alert("ขั้นตอน: 1) เลือกไฟล์ CSV (หัวคอลัมน์ = ชื่อช่อง; ช่องรูปใส่ชื่อไฟล์รูป)  2) เลือกไฟล์รูปที่อ้างถึง (ถ้ามี)"); $("fCsv").click(); } };
+$("fCsv").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  const buf = await f.arrayBuffer(); try { csvText = new TextDecoder("utf-8", {fatal: true}).decode(buf); } catch { csvText = new TextDecoder("windows-874").decode(buf); }
+  if (S.tpl.fields.some(x => x.type === "image")) $("fCsvImgs").click(); else finishCsv([]);
+};
+$("fCsvImgs").onchange = e => { finishCsv([...e.target.files]); e.target.value = ""; };
+$("fCsvImgs").addEventListener("cancel", () => finishCsv([]));
+async function finishCsv(imgs) {
+  if (csvText == null) return;
+  const rows = parseCSV(csvText.replace(/^﻿/, "")), head = rows.shift().map(h => h.trim()), types = Object.fromEntries(S.tpl.fields.map(f => [f.name, f.type]));
+  const byName = new Map(imgs.map(f => [f.name, f])), ids = new Map(); let n = 0;
+  for (const r of rows) {
+    const d = {};
+    for (let i = 0; i < head.length; i++) {
+      const k = head[i], v = (r[i] || "").trim(); if (!(k in types)) continue;
+      if (types[k] === "image") { const fl = byName.get(v.split(/[\\/]/).pop()); if (fl) { if (!ids.has(fl.name)) ids.set(fl.name, await storeBlob(fl)); d[k] = ids.get(fl.name); } }
+      else d[k] = v;
+    }
+    if (Object.keys(d).length) { await DB.put("records", {tid: S.tpl.id, data: d}); n++; }
+  }
+  csvText = null; await loadRecs(); renderTable(); redraw(); toast(`นำเข้า ${n} แถว`);
+}
+
+/* ============ export ============ */
+function refreshExport() {
+  const t = S.tpl, names = (t?.fields || []).filter(f => f.type === "text").map(f => f.name);
+  const cur = $("xName").value;
+  $("xName").innerHTML = `<option value="">(เลขลำดับ)</option>` + names.map(n => `<option>${n}</option>`).join("");
+  $("xName").value = names.includes(cur) ? cur : (names[0] || "");
+  $("xCount").textContent = `ในฐานข้อมูล ${S.recs.length} แถว | เลือกอยู่ ${S.selRows.size} แถว`;
+}
+function chosen() {
+  let r = S.recs;
+  if (document.querySelector('input[name=scope]:checked').value === "sel") r = r.filter(x => S.selRows.has(x.id));
+  if (!r.length) toast("ไม่มีแถวข้อมูลให้สร้าง");
+  return r;
+}
+const toBlob = (cv, type, q) => new Promise(r => cv.toBlob(r, type, q));
+async function cardBlob(rec, fmt) {
+  const cv = document.createElement("canvas");
+  await renderCard(S.tpl, rec.data, cv, false);
+  return toBlob(cv, fmt === "JPG" ? "image/jpeg" : "image/png", 0.95);
+}
+// minimal store-only ZIP writer
+const crcT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc32 = u8 => { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = crcT[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+function makeZip(files) {
+  const enc = new TextEncoder(), parts = [], cen = []; let off = 0;
+  for (const {name, data} of files) {
+    const nm = enc.encode(name), crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30)); h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true);
+    h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, nm.length, true);
+    parts.push(h.buffer, nm, data);
+    const c = new DataView(new ArrayBuffer(46)); c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true);
+    c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
+    cen.push(c.buffer, nm); off += 30 + nm.length + data.length;
+  }
+  const cs = cen.reduce((s, b) => s + (b.byteLength ?? b.length), 0);
+  const e = new DataView(new ArrayBuffer(22)); e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...cen, e.buffer], {type: "application/zip"});
+}
+function download(blob, name) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); }
+const safe = s => (s || "").replace(/[\\/:*?"<>|]/g, "").trim();
+$("xZip").onclick = async () => {
+  const recs = chosen(); if (!recs.length) return;
+  const fmt = $("xFmt").value, nf = $("xName").value, used = new Set(), files = [];
+  for (let i = 0; i < recs.length; i++) {
+    $("xProg").textContent = `กำลังสร้าง ${i + 1}/${recs.length}…`;
+    let base = (nf && safe(recs[i].data[nf])) || String(i + 1).padStart(3, "0"), nm = base, k = 2;
+    while (used.has(nm)) nm = `${base}_${k++}`; used.add(nm);
+    files.push({name: `${nm}.${fmt === "JPG" ? "jpg" : "png"}`, data: new Uint8Array(await (await cardBlob(recs[i], fmt)).arrayBuffer())});
+  }
+  download(makeZip(files), `${safe(S.tpl.name)}.zip`); $("xProg").textContent = `เสร็จแล้ว ${recs.length} ไฟล์`;
+};
+$("xPrint").onclick = async () => {
+  const recs = chosen(); if (!recs.length) return;
+  const t = S.tpl, sizes = {A4: [210, 297], A3: [297, 420], Letter: [215.9, 279.4]};
+  let [pw, ph] = sizes[$("xPage").value]; if ($("xLand").checked) [pw, ph] = [ph, pw];
+  const m = +$("xMargin").value, g = +$("xGap").value, cw = t.width / t.dpi * 25.4, ch = t.height / t.dpi * 25.4;
+  const cols = Math.max(1, Math.floor((pw - 2 * m + g) / (cw + g))), rows = Math.max(1, Math.floor((ph - 2 * m + g) / (ch + g))), per = cols * rows;
+  const urls = [];
+  for (let i = 0; i < recs.length; i++) { $("xProg").textContent = `กำลังสร้าง ${i + 1}/${recs.length}…`; urls.push(URL.createObjectURL(await cardBlob(recs[i], "PNG"))); }
+  let html = `<style>@page{size:${pw}mm ${ph}mm}</style>`;
+  for (let s = 0; s < urls.length; s += per) {
+    html += `<div class="sheet" style="width:${pw}mm;height:${ph}mm">` + urls.slice(s, s + per).map((u, j) =>
+      `<img src="${u}" style="left:${m + (j % cols) * (cw + g)}mm;top:${m + Math.floor(j / cols) * (ch + g)}mm;width:${cw}mm;height:${ch}mm">`).join("") + "</div>";
+  }
+  $("printarea").innerHTML = html;
+  await Promise.all([...$("printarea").querySelectorAll("img")].map(i => i.decode().catch(() => {})));
+  $("xProg").textContent = `${Math.ceil(urls.length / per)} หน้า (${cols}×${rows} ใบ/หน้า)`;
+  print();
+};
+
+/* ============ backup / restore ============ */
+const b2d = b => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
+$("bBackup").onclick = async () => {
+  const blobs = {}; for (const k of await DB.keys("blobs")) blobs[k] = await b2d(await DB.get("blobs", k));
+  const fonts = []; for (const f of await DB.all("fonts")) fonts.push({name: f.name, data: await b2d(f.blob)});
+  const out = {v: 1, templates: await DB.all("templates"), records: await DB.all("records"), blobs, fonts};
+  download(new Blob([JSON.stringify(out)], {type: "application/json"}), "badgemaker-backup.json");
+};
+$("bRestore").onclick = () => $("fRestore").click();
+$("fRestore").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f || !confirm("กู้คืนจะแทนที่ข้อมูลทั้งหมดที่มีอยู่ ดำเนินการต่อ?")) return;
+  try {
+    const d = JSON.parse(await f.text());
+    for (const s of ["templates", "records", "blobs", "fonts"]) await DB.clear(s);
+    for (const t of d.templates) await DB.put("templates", t);
+    for (const r of d.records) await DB.put("records", r);
+    for (const [k, v] of Object.entries(d.blobs)) await DB.put("blobs", await (await fetch(v)).blob(), k);
+    for (const x of d.fonts || []) await DB.put("fonts", {name: x.name, blob: await (await fetch(x.data)).blob()});
+    imgCache.clear(); await loadSavedFonts(); refreshTemplates(); toast("กู้คืนแล้ว");
+  } catch (err) { toast("ไฟล์สำรองไม่ถูกต้อง"); }
+};
+
+/* ============ boot ============ */
+(async () => { await DB.open(); refreshFontList(); await loadSavedFonts(); await refreshTemplates(); })();
+</script>
+</body>
+</html>
