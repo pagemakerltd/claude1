@@ -77,6 +77,7 @@ dialog::backdrop{background:#0008}
  <aside>
   <fieldset><legend>Template</legend>
    <div id="sizeLbl" class="hint"></div>
+   <div class="row"><button id="bResize">📐 ปรับขนาด / ความละเอียด…</button></div>
    <div class="row"><input type="color" id="bgColor"><button id="bBgImg">รูปพื้นหลัง…</button><button id="bBgClr">ล้างรูป</button><input type="file" id="fBg" accept="image/*" hidden></div>
   </fieldset>
   <fieldset><legend>ช่องข้อมูล (เพิ่ม/ลบจำนวนจุดได้)</legend>
@@ -117,6 +118,9 @@ dialog::backdrop{background:#0008}
   <label><input type="radio" name="scope" value="all" checked> ทุกแถว</label>
   <label style="margin-left:14px"><input type="radio" name="scope" value="sel"> เฉพาะแถวที่เลือกในแท็บ "ข้อมูล"</label>
   <div id="xCount" class="hint"></div></div>
+ <div class="card"><h3>ความละเอียดตอน Export</h3>
+  <div class="row"><select id="xDpi"></select><span id="xDpiInfo" class="hint"></span></div>
+  <div class="hint">ขนาดจริง (mm) ไม่เปลี่ยน — เปลี่ยนเฉพาะจำนวนพิกเซลของไฟล์ที่ได้ (ใช้กับทั้ง ZIP และพิมพ์/PDF)</div></div>
  <div class="card"><h3>A) ไฟล์ภาพแยกทีละใบ (ดาวน์โหลดเป็น ZIP)</h3>
   <div class="row"><select id="xFmt"><option>PNG</option><option>JPG</option></select><span>ตั้งชื่อไฟล์จากช่อง</span><select id="xName"></select><button id="xZip" class="primary">สร้าง ZIP</button></div></div>
  <div class="card"><h3>B) จัดหลายใบลงกระดาษ → พิมพ์ / บันทึกเป็น PDF</h3>
@@ -254,9 +258,10 @@ function drawImg(ctx, f, bm) {
   }
   ctx.restore();
 }
-async function renderCard(tpl, data, canvas, preview) {
-  canvas.width = tpl.width; canvas.height = tpl.height;
+async function renderCard(tpl, data, canvas, preview, scale = 1) {
+  canvas.width = Math.round(tpl.width * scale); canvas.height = Math.round(tpl.height * scale);
   const ctx = canvas.getContext("2d");
+  ctx.scale(canvas.width / tpl.width, canvas.height / tpl.height);
   ctx.fillStyle = tpl.bgColor; ctx.fillRect(0, 0, tpl.width, tpl.height);
   if (tpl.bgImage) { const bm = await getBitmap(tpl.bgImage); if (bm) { const k = Math.max(tpl.width / bm.width, tpl.height / bm.height); ctx.drawImage(bm, (tpl.width - bm.width * k) / 2, (tpl.height - bm.height * k) / 2, bm.width * k, bm.height * k); } }
   for (const f of tpl.fields) {
@@ -398,6 +403,31 @@ addEventListener("keydown", e => {
   if (m) { e.preventDefault(); S.sel[m[0]] += m[1]; $("p_" + m[0]).value = S.sel[m[0]]; saveTpl(); redraw(); }
 });
 
+/* resize template */
+$("bResize").onclick = () => {
+  const t = S.tpl; if (!t) return toast("สร้าง Template ก่อน");
+  const wmm = +(t.width / t.dpi * 25.4).toFixed(2), hmm = +(t.height / t.dpi * 25.4).toFixed(2), ratio = wmm / hmm;
+  dialog(`
+   <div class="row"><label>กว้าง (mm)</label><input type="number" step="any" min="1" name="w" id="rw" value="${wmm}"></div>
+   <div class="row"><label>สูง (mm)</label><input type="number" step="any" min="1" name="h" id="rh" value="${hmm}"></div>
+   <div class="row"><label style="width:auto"><input type="checkbox" id="rlock" checked> ล็อกสัดส่วน</label></div>
+   <div class="row"><label>ความละเอียด</label><input type="number" min="30" max="1200" name="dpi" id="rd" value="${t.dpi}"> dpi
+     <select id="rdp"><option value="">เลือก…</option><option>150</option><option>300</option><option>600</option></select></div>
+   <div class="row"><label style="width:auto"><input type="checkbox" name="sc" checked> ย่อ/ขยายตำแหน่งและขนาดของช่องตามไปด้วย</label></div>
+   <div id="rinfo" class="hint"></div>`, f => {
+    const d = Math.max(30, Math.min(1200, +f.dpi.value || t.dpi)), nw = mm2px(+f.w.value, d), nh = mm2px(+f.h.value, d);
+    if (nw > 12000 || nh > 12000) return toast("ขนาดใหญ่เกินไป");
+    const sx = nw / t.width, sy = nh / t.height;
+    if (f.sc.checked) for (const fl of t.fields) { fl.x = Math.round(fl.x * sx); fl.w = Math.max(1, Math.round(fl.w * sx)); fl.y = Math.round(fl.y * sy); fl.h = Math.max(1, Math.round(fl.h * sy)); if (fl.size) fl.size = Math.max(6, Math.round(fl.size * Math.min(sx, sy))); }
+    t.width = nw; t.height = nh; t.dpi = d; saveTpl(); loadTplUI(); redraw(); refreshExport(); toast(`ปรับเป็น ${nw}×${nh} px @ ${d} dpi`);
+  });
+  const info = () => $("rinfo").textContent = `= ${mm2px(+$("rw").value, +$("rd").value || 1)} × ${mm2px(+$("rh").value, +$("rd").value || 1)} px`;
+  $("rw").oninput = () => { if ($("rlock").checked) $("rh").value = +(($("rw").value) / ratio).toFixed(2); info(); };
+  $("rh").oninput = () => { if ($("rlock").checked) $("rw").value = +(($("rh").value) * ratio).toFixed(2); info(); };
+  $("rd").oninput = info; $("rdp").onchange = e => { if (e.target.value) { $("rd").value = e.target.value; info(); } };
+  info();
+};
+
 /* ============ templates ============ */
 async function refreshTemplates(selectId) {
   const list = (await DB.all("templates")).sort((a, b) => a.name.localeCompare(b.name));
@@ -530,8 +560,19 @@ function refreshExport() {
   const cur = $("xName").value;
   $("xName").innerHTML = `<option value="">(เลขลำดับ)</option>` + names.map(n => `<option>${n}</option>`).join("");
   $("xName").value = names.includes(cur) ? cur : (names[0] || "");
+  const prev = $("xDpi").value;
+  $("xDpi").innerHTML = `<option value="0">ตาม Template (${t ? t.dpi : "-"} dpi)</option>` + [72, 150, 200, 300, 600, 1200].map(d => `<option>${d}</option>`).join("");
+  if ([...$("xDpi").options].some(o => o.value === prev)) $("xDpi").value = prev;
+  updDpiInfo();
   $("xCount").textContent = `ในฐานข้อมูล ${S.recs.length} แถว | เลือกอยู่ ${S.selRows.size} แถว`;
 }
+const exportDpi = () => +$("xDpi").value || S.tpl.dpi;
+function updDpiInfo() {
+  const t = S.tpl; if (!t) return;
+  const k = exportDpi() / t.dpi;
+  $("xDpiInfo").textContent = `ไฟล์ที่ได้ ${Math.round(t.width * k)} × ${Math.round(t.height * k)} px`;
+}
+$("xDpi").onchange = updDpiInfo;
 function chosen() {
   let r = S.recs;
   if (document.querySelector('input[name=scope]:checked').value === "sel") r = r.filter(x => S.selRows.has(x.id));
@@ -540,9 +581,23 @@ function chosen() {
 }
 const toBlob = (cv, type, q) => new Promise(r => cv.toBlob(r, type, q));
 async function cardBlob(rec, fmt) {
-  const cv = document.createElement("canvas");
-  await renderCard(S.tpl, rec.data, cv, false);
-  return toBlob(cv, fmt === "JPG" ? "image/jpeg" : "image/png", 0.95);
+  const dpi = exportDpi(), cv = document.createElement("canvas");
+  await renderCard(S.tpl, rec.data, cv, false, dpi / S.tpl.dpi);
+  const blob = await toBlob(cv, fmt === "JPG" ? "image/jpeg" : "image/png", 0.95);
+  return setDpiMeta(blob, fmt, dpi);
+}
+// ฝังค่า dpi ลงในไฟล์ (PNG pHYs / JPEG JFIF) เพื่อให้โปรแกรมอื่นอ่านขนาดจริงถูก
+async function setDpiMeta(blob, fmt, dpi) {
+  const u = new Uint8Array(await blob.arrayBuffer());
+  if (fmt === "JPG") {
+    if (u[2] === 0xFF && u[3] === 0xE0) { u[13] = 1; u[14] = dpi >> 8; u[15] = dpi & 255; u[16] = dpi >> 8; u[17] = dpi & 255; }
+    return new Blob([u], {type: "image/jpeg"});
+  }
+  const ppm = Math.round(dpi / 0.0254), chunk = new Uint8Array(21), v = new DataView(chunk.buffer);
+  v.setUint32(0, 9); chunk.set([0x70, 0x48, 0x59, 0x73], 4); v.setUint32(8, ppm); v.setUint32(12, ppm); chunk[16] = 1;
+  v.setUint32(17, crc32(chunk.subarray(4, 17)));
+  const at = 33; // หลัง signature(8)+IHDR(25)
+  return new Blob([u.subarray(0, at), chunk, u.subarray(at)], {type: "image/png"});
 }
 // minimal store-only ZIP writer
 const crcT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
